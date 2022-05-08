@@ -6,6 +6,7 @@ Bending of Bernoulli beams project (numerical analysis) library of functions.
 """
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 def get_phi(grid, i):
     """
@@ -96,9 +97,59 @@ def get_phi(grid, i):
     return phi
 
 
+def plotBeam(grid, solution, nData = 200):
+    """
+    Plots the deformed beam
 
+    Parameters
+    ----------
+    grid: {array}
+        Vector with gridpoints.
+    solution: {array}
+        Solution vector (the odd positions represent deformation
+                         and the even ones, derivative).
+    nData: {int, optional}
+        Number of plotting datapoints. The default is 200.
 
+    Returns
+    -------
+    None.
+
+    """
+    nN     = len(grid)
+    x_plot = np.linspace(grid.min(), grid.max(), nData) 
+    
+    beam   = np.zeros(x_plot.shape)
+    
+    # NOTE: this is a bit slow. Suggestions accepted.
+    
+    for idx in range(1, nN + 1):
+        
+        phi   = get_phi(grid, idx - 1)
+        
+        beam += solution[2 * (idx) - 2] * phi(x_plot)[0]
+        beam += solution[2 * (idx) - 1] * phi(x_plot)[1]
+        
+    
+    plt.rcParams['text.usetex'] = True
+    plt.rcParams.update({'font.size' : 9})
+    
+    fig, ax = plt.subplots(figsize=(5, 3), dpi = 3300)
+    
+    ax.plot(x_plot, beam, color= '#808080')
+    ax.plot([grid.min(), grid.max()], [0, 0], color= '#959595', linestyle= '--')
     
     
+    ax.axvline(x=0, color="black", linestyle="-", linewidth = 5)
     
+    ax.set_xlabel('x-direction (-)')
+    ax.set_ylabel('deformation (-)')
     
+    ax.tick_params(direction= 'in', which= 'major', length= 4, bottom= True,
+        top=True, right= False, left=True, width = 1)
+    
+    low, high = plt.ylim()
+    bound = max(abs(low), abs(high))
+    plt.ylim(-bound, bound)
+    
+    plt.text(0.875, 0.425,'undeformed', ha='center', va='center', transform=ax.transAxes, color= '#959595')

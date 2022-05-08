@@ -30,3 +30,10 @@ ax[1].set_title('Even shape functions (derivative)')
 
 plt.tight_layout()
 plt.show()
+
+# %% Beam plotting test
+
+grid = np.linspace(0, 1, 5)
+solution = np.zeros((2*len(grid),))
+
+plotBeam(grid, solution)
