@@ -97,7 +97,34 @@ def get_phi(grid, i):
     return phi
 
 
-def plotBeam(grid, solution, nData = 200):
+def get_sol(grid, coeffs):
+    """
+    Returns the solution function
+
+    Parameters
+    ----------
+    grid: {array}
+        Vector with gridpoints.
+    coeffs: {array}
+        Solution vector (the odd positions represent deformation
+                         and the even ones, derivative).
+    Returns
+    -------
+    w: {function}
+        Solution function.
+    """
+    def w(y):
+        beam = np.zeros(y.shape)
+        
+        for idx in range(int(coeffs.shape[0]/2)):
+            phi   = get_phi(grid, idx)
+            beam += coeffs[2 * idx] * phi(y)[0] + coeffs[2 * idx + 1] * phi(y)[1]
+
+        return beam
+    
+    return w
+
+def plotBeam(grid, coeffs, nData = 200):
     """
     Plots the deformed beam
 
@@ -105,7 +132,7 @@ def plotBeam(grid, solution, nData = 200):
     ----------
     grid: {array}
         Vector with gridpoints.
-    solution: {array}
+    coeffs: {array}
         Solution vector (the odd positions represent deformation
                          and the even ones, derivative).
     nData: {int, optional}
@@ -119,24 +146,14 @@ def plotBeam(grid, solution, nData = 200):
     nN     = len(grid)
     x_plot = np.linspace(grid.min(), grid.max(), nData) 
     
-    beam   = np.zeros(x_plot.shape)
-    
-    # NOTE: this is a bit slow. Suggestions accepted.
-    
-    for idx in range(1, nN + 1):
-        
-        phi   = get_phi(grid, idx - 1)
-        
-        beam += solution[2 * (idx) - 2] * phi(x_plot)[0]
-        beam += solution[2 * (idx) - 1] * phi(x_plot)[1]
-        
+    beam = get_sol(grid, coeffs)
     
     plt.rcParams['text.usetex'] = True
     plt.rcParams.update({'font.size' : 9})
     
     fig, ax = plt.subplots(figsize=(5, 3), dpi = 3300)
     
-    ax.plot(x_plot, beam, color= '#808080')
+    ax.plot(x_plot, beam(x_plot), color= '#808080')
     ax.plot([grid.min(), grid.max()], [0, 0], color= '#959595', linestyle= '--')
     
     
@@ -153,3 +170,15 @@ def plotBeam(grid, solution, nData = 200):
     plt.ylim(-bound, bound)
     
     plt.text(0.875, 0.425,'undeformed', ha='center', va='center', transform=ax.transAxes, color= '#959595')
+    
+
+def computeMatrices():
+    
+    # Work in progress
+    
+    return 0
+
+
+
+
+
