@@ -19,7 +19,7 @@ ax[1].scatter(grid, np.zeros(grid.shape), marker= 'x', color = 'k')
 
 for i in range(3):
     
-    phi = get_phi(grid, i)
+    phi = get_phi(grid, i, derivative = 2)
     
     ax[0].plot(x_plot, phi(x_plot)[0], color= colors[i])
     ax[1].plot(x_plot, phi(x_plot)[1], color= colors[i])
@@ -38,18 +38,28 @@ solution = np.zeros((2*len(grid),))
 
 plotBeam(grid, solution)
 
-# %% Matrix computation test
+# %% Matrix computation and solver test - not working yet
 
-grid = np.linspace(0, 1, 3)
+E  = 210      # [N/mm2]
+I  = 3.3e7    # [mm4]
+k  = 10       # [N]
+L  = 1        # [m]
+nN = 5        # [-]
 
-# S_anal = np.array([[6, 1.5, 6, 1.5, 6, 1.5], [1.5, 1, 1.5, 1, 1.5, 1], [6, 1.5, 6, 1.5, 6, 1.5], [1.5, 1, 1.5, 1, 1.5, 1], [6, 1.5, 6, 1.5, 6, 1.5], [1.5, 1, 1.5, 1, 1.5, 1]])
-S = computeMatrices(grid, 1, 1)
+grid = np.linspace(0, L, nN)
 
-print(S)
-# print('')
-# print(S_anal)
+BC = (0, 0, 0, 0)
 
-# %% 
+def q(x):
+    return k * x
 
+def exact(x):
+    return (20*k*L**3*x**2 - 10*k*L**2*x**3 + k*x**5)/(120*E*I)
 
+S, RHS, (e0, eL), (d0, dL) = computeMatrices(grid, q, E, I, n_quad = 50)
 
+Se, RHSe = fixBeam(S, RHS, (e0, eL), (d0, dL), BC)
+
+sol      = sparse.linalg.spsolve(Se, RHSe)
+
+plotBeam(grid, sol[:-2], 100, exact)

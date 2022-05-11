@@ -7,6 +7,8 @@ Bending of Bernoulli beams project (numerical analysis) library of functions.
 
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.integrate import fixed_quad
+from scipy import sparse
 
 def get_phi(grid, i, derivative = 0):
     """
@@ -85,10 +87,13 @@ def get_phi(grid, i, derivative = 0):
             Basis function related with derivative.
 
         """
-
-        funct_odd  = np.zeros(y.shape[0])
-        funct_even = np.zeros(y.shape[0])
         
+        if type(y) == int or float: 
+            y = np.array(y)
+            
+        funct_odd  = np.zeros(y.shape)
+        funct_even = np.zeros(y.shape)   
+    
         if i == 0:
             funct_odd[ (y >= grid[0]) & (y <= grid[1])] = SF(y[ (y >= grid[0]) & (y <= grid[1])]/h[0])[0]
             funct_even[(y >= grid[0]) & (y <= grid[1])] = h[0] * SF(y[ (y >= grid[0]) & (y <= grid[1])]/h[0])[1]
@@ -103,7 +108,7 @@ def get_phi(grid, i, derivative = 0):
             
             funct_even[(y>= grid[i - 1]) & (y <= grid[i])] = h[i] * SF((y[(y>= grid[i - 1]) & (y <= grid[i])] - grid[i - 1])/h[i])[3]
             funct_even[(y>= grid[i]) & (y <= grid[i + 1])] = h[i] * SF((y[(y>= grid[i]) & (y <= grid[i + 1])] - grid[i])/h[i])[1]
-            
+    
         
         return funct_odd, funct_even
     
@@ -126,6 +131,8 @@ def get_sol(grid, coeffs):
     w: {function}
         Solution function.
     """
+    
+    # This for loop will be removed using the matrices ex and dx from computeMatrices()
     def w(y):
         beam = np.zeros(y.shape)
         
@@ -137,7 +144,7 @@ def get_sol(grid, coeffs):
     
     return w
 
-def plotBeam(grid, coeffs, nData = 200):
+def plotBeam(grid, coeffs, nData, *argv):
     """
     Plots the deformed beam
 
@@ -166,14 +173,16 @@ def plotBeam(grid, coeffs, nData = 200):
     
     fig, ax = plt.subplots(figsize=(5, 3), dpi = 3300)
     
-    ax.plot(x_plot, beam(x_plot), color= '#808080')
+    ax.plot(x_plot, beam(x_plot) * 1e3, color= '#808080')
     ax.plot([grid.min(), grid.max()], [0, 0], color= '#959595', linestyle= '--')
     
+    for arg in argv: 
+        ax.plot(x_plot, arg(x_plot) * 1e3, color = 'r', linestyle = '-.')
     
     ax.axvline(x=0, color="black", linestyle="-", linewidth = 5)
     
     ax.set_xlabel('x-direction (-)')
-    ax.set_ylabel('deformation (-)')
+    ax.set_ylabel('deformation (mm)')
     
     ax.tick_params(direction= 'in', which= 'major', length= 4, bottom= True,
         top=True, right= False, left=True, width = 1)
@@ -185,44 +194,101 @@ def plotBeam(grid, coeffs, nData = 200):
     plt.text(0.875, 0.425,'undeformed', ha='center', va='center', transform=ax.transAxes, color= '#959595')
     
 
-def computeMatrices(grid, E, I):
+def computeMatrices(grid, q, E, I, n_quad = 40):
+    """
+    Stiffness, inhomogeneity and physical/natural BC matrices computation
     
-    # NOT WORKING YET
-    
-    from scipy.integrate import fixed_quad, quad
-    
+    Parameters
+    ----------
+    grid: {array}
+        Vector with gridpoints.
+    q:  {function}
+        Right-hand-side of the differential equation.
+    E: {function} or {scalar}
+        Young modulus [N/mm2]
+    I: {function} or {scalar}
+        Area moment of inertia.
+    n_quad: {scalar, optional}
+        Order of the quadrature rule (numerical integration). Default is 40.
+
+    Returns
+    -------
+    S: {array}
+        Stiffness matrix.
+    RHS: {array}
+        Right-hand-side matrix
+    ex: {array}
+        Vector of basis functions
+    dx: {array}
+        Vector of derivatives of basis functions
+
+    """
+        
     if callable(E): 
         constantprops = False 
     else: 
         constantprops = True;
     
-    N = grid.shape[0]
-    L = grid[-1]            # in 1D grid
-    S = np.zeros((2*N, 2*N))
+    N   = grid.shape[0]
+    L   = grid[-1]            # in 1D grid
+    S   = np.zeros((2*N, 2*N))
+    RHS = np.zeros((2*N,))
+    
+    e0  = np.zeros((2*N,))
+    eL  = np.zeros((2*N,))
+    d0  = np.zeros((2*N,))
+    dL  = np.zeros((2*N,))
        
-    # Implementation with for loops and unoptimized (should be avoided):
+    # Implementation with for loops (should be avoided) and unoptimized (dense matrices). 
+    # Will be updated in further versions:
+    for j in range(0, 2*N, 2):
         
-    for j in range(2*N):
-        for k in range(2*N):
-            phi_j = get_phi(grid, j % 2, derivative = 2)
-            phi_k = get_phi(grid, k % 2, derivative = 2)
-            
-            idx_j = 0
-            idx_k = 0
-            
-            if (j % 2 == 1): idx_j = 1
+        phi_j         = get_phi(grid, j//2, derivative = 0)
+        phi_j_prime   = get_phi(grid, j//2, derivative = 1)
                 
-            if (k % 2 == 1): idx_k = 1
+        RHS[j], _     = fixed_quad(lambda x: q(x) * phi_j(x)[0], 0, L, n = n_quad)
+        RHS[j + 1], _ = fixed_quad(lambda x: q(x) * phi_j(x)[1], 0, L, n = n_quad)
+        
+        e0[j]         = phi_j(0)[0];   eL[j]      = phi_j(L)[0]
+        e0[j + 1]     = phi_j(0)[1];   eL[j + 1]  = phi_j(L)[1]
+        
+        d0[j]         = phi_j_prime(0)[0];   dL[j]      = phi_j_prime(L)[0]
+        d0[j + 1]     = phi_j_prime(0)[1];   dL[j + 1]  = phi_j_prime(L)[1]
+        
+        for k in range(0, 2*N, 2):
             
+            phi_j = get_phi(grid, j//2, derivative = 2)
+            phi_k = get_phi(grid, k//2, derivative = 2)
+                        
             if constantprops: 
-                S[j, k], _ = fixed_quad(lambda x: E * I * phi_j(x)[idx_j] * phi_k(x)[idx_k], 0, L, n = 40)
+                S[j, k], _         = fixed_quad(lambda x: E * I * phi_j(x)[0] * phi_k(x)[0], 0, L, n = n_quad)
+                S[j + 1, k], _     = fixed_quad(lambda x: E * I * phi_j(x)[1] * phi_k(x)[0], 0, L, n = n_quad)
+                S[j, k + 1], _     = fixed_quad(lambda x: E * I * phi_j(x)[0] * phi_k(x)[1], 0, L, n = n_quad)
+                S[j + 1, k + 1], _ = fixed_quad(lambda x: E * I * phi_j(x)[1] * phi_k(x)[1], 0, L, n = n_quad)
                 
             else: 
-                S[j, k], _ = fixed_quad(lambda x: E(x) * I(x) * phi_j(x)[idx_j] * phi_k(x)[idx_k], 0, L, n = 40)
+                S[j, k], _         = fixed_quad(lambda x: E(x) * I(x) * phi_j(x)[0] * phi_k(x)[0], 0, L, n = n_quad)
+                S[j + 1, k], _     = fixed_quad(lambda x: E(x) * I(x) * phi_j(x)[1] * phi_k(x)[0], 0, L, n = n_quad)
+                S[j, k + 1], _     = fixed_quad(lambda x: E(x) * I(x) * phi_j(x)[0] * phi_k(x)[1], 0, L, n = n_quad)
+                S[j + 1, k + 1], _ = fixed_quad(lambda x: E(x) * I(x) * phi_j(x)[1] * phi_k(x)[1], 0, L, n = n_quad)
                 
-    return S
+    return sparse.csr_matrix(S), RHS, (e0, eL), (d0, dL)
 
 
-
-
+def fixBeam(S, RHS, e, d, BC):
+    
+    
+    e0, eL = e
+    d0, dL = d
+    a, b, QL, ML = BC
+    
+    basisVector = sparse.csr_matrix(np.vstack((e0, d0)))
+        
+    RHSe = RHS + QL * eL + ML * dL
+    RHSe = np.hstack((RHSe, np.array([a, b])))
+    
+    Se   = sparse.vstack((S, basisVector))
+    Se   = sparse.hstack((Se, (sparse.hstack((basisVector, sparse.csr_matrix((2, 2))))).T))
+    
+    return Se, RHSe
 
