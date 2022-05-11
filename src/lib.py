@@ -7,7 +7,7 @@ Bending of Bernoulli beams project (numerical analysis) library of functions.
 
 import numpy as np
 import matplotlib.pyplot as plt
-
+import sympy as sm
 def get_phi(grid, i, derivative = 0):
     """
     Computes the functions that form the ansatz space Vh, where Vh is a space 
@@ -222,7 +222,23 @@ def computeMatrices(grid, E, I):
                 
     return S
 
-
-
+def get_local_matrix():
+    # <><><><><><>
+    x = sm.Symbol('x')
+    print("done")
+    S = np.zeros((4,4))
+    phi1 = 1 - 3* x**2 + 2 * x**3
+    phi2 = x* (x-1)**2
+    phi3 = 3*x**2 - 2*x**3
+    phi4 = x**2 * (x-1)
+    phi  = [phi1,phi2,phi3,phi4]
+    for i in range(4):
+        for j in range(4):
+            S[i,j] = float(sm.integrate(sm.diff(phi[i],x,2)*sm.diff(phi[j],x,2),(x,0,1)))
+    #a = 
+    #a = sm.diff(phi1,x,4)
+    print(S)
+    return a
+get_local_matrix()
 
 
