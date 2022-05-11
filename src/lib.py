@@ -189,23 +189,23 @@ def computeMatrices(grid, E, I):
     
     # NOT WORKING YET
     
-    from scipy.integrate import fixed_quad
+    from scipy.integrate import fixed_quad, quad
     
     if callable(E): 
         constantprops = False 
     else: 
         constantprops = True;
     
-    n = grid.shape[0]
+    N = grid.shape[0]
     L = grid[-1]            # in 1D grid
-    S = np.zeros((2*n, 2*n))
-    
+    S = np.zeros((2*N, 2*N))
+       
     # Implementation with for loops and unoptimized (should be avoided):
         
-    for j in range(2*n):
-        for k in range(2*n):
-            phi_j = get_phi(grid, j, derivative = 2)
-            phi_k = get_phi(grid, k, derivative = 2)
+    for j in range(2*N):
+        for k in range(2*N):
+            phi_j = get_phi(grid, j % 2, derivative = 2)
+            phi_k = get_phi(grid, k % 2, derivative = 2)
             
             idx_j = 0
             idx_k = 0
@@ -215,10 +215,10 @@ def computeMatrices(grid, E, I):
             if (k % 2 == 1): idx_k = 1
             
             if constantprops: 
-                S[j, k], _ = fixed_quad(lambda x: E * I * phi_j(x)[idx_j] * phi_k(x)[idx_k], 0, L, n = 30)
+                S[j, k], _ = fixed_quad(lambda x: E * I * phi_j(x)[idx_j] * phi_k(x)[idx_k], 0, L, n = 40)
                 
             else: 
-                S[j, k], _ = fixed_quad(lambda x: E(x) * I(x) * phi_j(x)[idx_j] * phi_k(x)[idx_k], 0, L, n = 30)
+                S[j, k], _ = fixed_quad(lambda x: E(x) * I(x) * phi_j(x)[idx_j] * phi_k(x)[idx_k], 0, L, n = 40)
                 
     return S
 
