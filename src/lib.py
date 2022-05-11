@@ -8,7 +8,7 @@ Bending of Bernoulli beams project (numerical analysis) library of functions.
 import numpy as np
 import matplotlib.pyplot as plt
 
-def get_phi(grid, i):
+def get_phi(grid, i, derivative = 0):
     """
     Computes the functions that form the ansatz space Vh, where Vh is a space 
     of pecewise cubic polynomials.
@@ -29,7 +29,7 @@ def get_phi(grid, i):
         
     h = grid[1:] - grid[:-1]
     
-    def SF(xi):
+    def SF(xi, derivative = derivative):
         """
         Generates the cubic shape functions.
 
@@ -45,11 +45,24 @@ def get_phi(grid, i):
 
         """
         
-        phi_1 = 1 - 3 * xi**2 + 2*xi**3
-        phi_2 = xi * (xi - 1)**2
-        phi_3 = 3 * xi**2 - 2 * xi**3
-        phi_4 = xi**2 * (xi - 1)
+        if derivative == 0:
+            phi_1 = 1 - 3 * xi**2 + 2*xi**3
+            phi_2 = xi * (xi - 1)**2
+            phi_3 = 3 * xi**2 - 2 * xi**3
+            phi_4 = xi**2 * (xi - 1)
         
+        elif derivative == 1:
+            phi_1 = -6 * xi + 6 * xi**2
+            phi_2 = 3 * xi**2 - 4 * xi + 1
+            phi_3 = -6 * (xi - 1) * xi
+            phi_4 = xi * (3 * xi - 2)
+            
+        elif derivative == 2:
+            phi_1 = -6 + 12 * xi
+            phi_2 = 6 * xi - 4
+            phi_3 = 6 - 12 * xi
+            phi_4 = 6 * xi - 2
+            
         phi_bar = (phi_1, phi_2, phi_3, phi_4)
         
         return phi_bar
@@ -77,19 +90,19 @@ def get_phi(grid, i):
         funct_even = np.zeros(y.shape[0])
         
         if i == 0:
-            funct_odd[ (y >= grid[0]) & (y < grid[1])] = SF(y[ (y >= grid[0]) & (y < grid[1])]/h[0])[0]
-            funct_even[(y >= grid[0]) & (y < grid[1])] = h[0] * SF(y[ (y >= grid[0]) & (y < grid[1])]/h[0])[1]
+            funct_odd[ (y >= grid[0]) & (y <= grid[1])] = SF(y[ (y >= grid[0]) & (y <= grid[1])]/h[0])[0]
+            funct_even[(y >= grid[0]) & (y <= grid[1])] = h[0] * SF(y[ (y >= grid[0]) & (y <= grid[1])]/h[0])[1]
            
         elif i == grid.shape[0]-1:
             funct_odd[ (y >= grid[-2]) & (y <= grid[-1])] = SF((y[ (y >= grid[-2]) & (y <= grid[-1])] - grid[-2])/h[0])[2]
             funct_even[(y >= grid[-2]) & (y <= grid[-1])] = h[0] * SF((y[ (y >= grid[-2]) & (y <= grid[-1])] - grid[-2])/h[0])[3]
            
         else:
-            funct_odd[ (y>= grid[i - 1]) & (y < grid[i])] = SF((y[ (y>= grid[i - 1]) & (y < grid[i])] - grid[i - 1])/h[i])[2]
-            funct_odd[ (y>= grid[i]) & (y < grid[i + 1])] = SF((y[ (y>= grid[i]) & (y < grid[i + 1])] - grid[i])/h[i])[0]
+            funct_odd[ (y>= grid[i - 1]) & (y <= grid[i])] = SF((y[ (y>= grid[i - 1]) & (y <= grid[i])] - grid[i - 1])/h[i])[2]
+            funct_odd[ (y>= grid[i]) & (y <= grid[i + 1])] = SF((y[ (y>= grid[i]) & (y <= grid[i + 1])] - grid[i])/h[i])[0]
             
-            funct_even[(y>= grid[i - 1]) & (y < grid[i])] = h[i] * SF((y[(y>= grid[i - 1]) & (y < grid[i])] - grid[i - 1])/h[i])[3]
-            funct_even[(y>= grid[i]) & (y < grid[i + 1])] = h[i] * SF((y[(y>= grid[i]) & (y < grid[i + 1])] - grid[i])/h[i])[1]
+            funct_even[(y>= grid[i - 1]) & (y <= grid[i])] = h[i] * SF((y[(y>= grid[i - 1]) & (y <= grid[i])] - grid[i - 1])/h[i])[3]
+            funct_even[(y>= grid[i]) & (y <= grid[i + 1])] = h[i] * SF((y[(y>= grid[i]) & (y <= grid[i + 1])] - grid[i])/h[i])[1]
             
         
         return funct_odd, funct_even
@@ -172,11 +185,42 @@ def plotBeam(grid, coeffs, nData = 200):
     plt.text(0.875, 0.425,'undeformed', ha='center', va='center', transform=ax.transAxes, color= '#959595')
     
 
-def computeMatrices():
+def computeMatrices(grid, E, I):
     
-    # Work in progress
+    # NOT WORKING YET
     
-    return 0
+    from scipy.integrate import fixed_quad
+    
+    if callable(E): 
+        constantprops = False 
+    else: 
+        constantprops = True;
+    
+    n = grid.shape[0]
+    L = grid[-1]            # in 1D grid
+    S = np.zeros((2*n, 2*n))
+    
+    # Implementation with for loops and unoptimized (should be avoided):
+        
+    for j in range(2*n):
+        for k in range(2*n):
+            phi_j = get_phi(grid, j, derivative = 2)
+            phi_k = get_phi(grid, k, derivative = 2)
+            
+            idx_j = 0
+            idx_k = 0
+            
+            if (j % 2 == 1): idx_j = 1
+                
+            if (k % 2 == 1): idx_k = 1
+            
+            if constantprops: 
+                S[j, k], _ = fixed_quad(lambda x: E * I * phi_j(x)[idx_j] * phi_k(x)[idx_k], 0, L, n = 30)
+                
+            else: 
+                S[j, k], _ = fixed_quad(lambda x: E(x) * I(x) * phi_j(x)[idx_j] * phi_k(x)[idx_k], 0, L, n = 30)
+                
+    return S
 
 
 
