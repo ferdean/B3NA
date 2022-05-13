@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 from scipy.integrate import fixed_quad
 from scipy import sparse
 
+import sympy as sm
 def get_phi(grid, i, derivative = 0):
     """
     Computes the functions that form the ansatz space Vh, where Vh is a space 
@@ -274,6 +275,41 @@ def computeMatrices(grid, q, E, I, n_quad = 40):
                 
     return sparse.csr_matrix(S), RHS, (e0, eL), (d0, dL)
 
+def get_global_matrices(grid, E, I, loc_S):
+
+    N = grid.shape[0]*2
+    S = np.zeros((N,N))
+    #S = loc_S/(h**3)
+    first_mode = np.array([ [1,0,1,0],
+                            [0,0,0,0],
+                            [1,0,1,0],
+                            [0,0,0,0] ])
+
+    second_mode = np.array([ [0,1,0,1],
+                             [1,0,1,0],
+                             [0,1,0,1],
+                             [1,0,1,0] ])
+
+    third_mode = np.array([ [0,0,0,0],
+                            [0,1,0,1],
+                            [0,0,0,0],
+                            [0,1,0,1] ])
+
+    
+    h_array = grid[1:] - grid[0:-1]
+    h_odd  = np.take(h_array, np.arange(0,len(h_array),2))
+    h_even = np.take(h_array, np.arange(1,len(h_array),2))
+    A = np.kron(np.diag(h_odd**-3),first_mode) + np.kron(np.diag(h_odd**-2),second_mode) + np.kron(np.diag(h_odd**-1),third_mode)
+    A = A * np.kron(np.eye(len(h_odd)),loc_S)
+
+    B = np.kron(np.diag(h_even**-3),first_mode) + np.kron(np.diag(h_even**-2),second_mode) + np.kron(np.diag(h_even**-1),third_mode)
+    B = B * np.kron(np.eye(len(h_even)),loc_S)
+    S[0:A.shape[0],0:A.shape[0]] += A
+    S[2:B.shape[0]+2,2:B.shape[0]+2] += B
+    #print(h_odd)
+    #print(h_even)
+    #print(S)
+    return S*E*I
 
 def fixBeam(S, RHS, e, d, BC):
     
