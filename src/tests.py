@@ -57,12 +57,9 @@ def exact(x):
     return (20*k*L**3*x**2 - 10*k*L**2*x**3 + k*x**5)/(120*E*I)
 
 S, RHS, (e0, eL), (d0, dL) = computeMatrices(grid, q, E, I, n_quad = 50)
-<<<<<<< HEAD
 
-=======
 loc_S - get_lo
 S2 = get_global_matrices(grid, E, I, loc_S)
->>>>>>> local_stiffness
 Se, RHSe = fixBeam(S, RHS, (e0, eL), (d0, dL), BC)
 
 sol      = sparse.linalg.spsolve(Se, RHSe)

@@ -275,6 +275,25 @@ def computeMatrices(grid, q, E, I, n_quad = 40):
                 
     return sparse.csr_matrix(S), RHS, (e0, eL), (d0, dL)
 
+def get_local_matrix():
+    # <><><><><><>
+    x = sm.Symbol('x')
+    print("done")
+    S = np.zeros((4,4))
+    phi1 = 1 - 3* x**2 + 2 * x**3
+    phi2 = x* (x-1)**2
+    phi3 = 3*x**2 - 2*x**3
+    phi4 = x**2 * (x-1)
+    phi  = [phi1,phi2,phi3,phi4]
+    for i in range(4):
+        for j in range(4):
+            S[i,j] = float(sm.integrate(sm.diff(phi[i],x,2)*sm.diff(phi[j],x,2),(x,0,1)))
+    #a = 
+    #a = sm.diff(phi1,x,4)
+    print(S)
+    return S
+
+
 def get_global_matrices(grid, E, I, loc_S):
 
     N = grid.shape[0]*2
@@ -310,6 +329,7 @@ def get_global_matrices(grid, E, I, loc_S):
     #print(h_even)
     #print(S)
     return S*E*I
+
 
 def fixBeam(S, RHS, e, d, BC):
     
