@@ -9,7 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import fixed_quad
 from scipy import sparse
-
+import scipy as sp
 import sympy as sm
 def get_phi(grid, i, derivative = 0):
     """
@@ -172,7 +172,7 @@ def plotBeam(grid, coeffs, nData, *argv):
     plt.rcParams['text.usetex'] = True
     plt.rcParams.update({'font.size' : 9})
     
-    fig, ax = plt.subplots(figsize=(5, 3), dpi = 3300)
+    fig, ax = plt.subplots(figsize=(5, 3), dpi = 200)
     
     ax.plot(x_plot, beam(x_plot) * 1e3, color= '#808080')
     ax.plot([grid.min(), grid.max()], [0, 0], color= '#959595', linestyle= '--')
@@ -193,7 +193,7 @@ def plotBeam(grid, coeffs, nData, *argv):
     plt.ylim(-bound, bound)
     
     plt.text(0.875, 0.425,'undeformed', ha='center', va='center', transform=ax.transAxes, color= '#959595')
-    
+    plt.show()
 
 def computeMatrices(grid, q, E, I, n_quad = 40):
     """
@@ -290,7 +290,7 @@ def get_local_matrix():
             S[i,j] = float(sm.integrate(sm.diff(phi[i],x,2)*sm.diff(phi[j],x,2),(x,0,1)))
     #a = 
     #a = sm.diff(phi1,x,4)
-    print(S)
+    #print(S)
     return S
 
 
@@ -329,6 +329,41 @@ def get_global_matrices(grid, E, I, loc_S):
     #print(h_even)
     #print(S)
     return S*E*I
+
+def get_RHS(grid,q):  
+    # q(x) is a function that has to work with numpy arrays
+    # Everything here is done in the matrix vector multiplication form(not super obvious, but less for loops)
+    # Since the test functions are 4th order, I decided to do 4-point gaus quadrature, not to waste precision
+     
+    N = len(grid)
+    h = grid[1:] - grid[0:-1]
+    # weights and nodes of Gaus quadrature for 4 points (scaled to integrate from 0 to 1)(original values from wikipedia)
+    # https://en.wikipedia.org/wiki/Gaussian_quadrature
+    nodes = (np.sort(np.array([(3/7 - (2/7)*(6/5)**0.5)**0.5, -(3/7 - (2/7)*(6/5)**0.5)**0.5 , 
+                              (3/7 + (2/7)*(6/5)**0.5)**0.5, -(3/7 + (2/7)*(6/5)**0.5)**0.5])) +1) /2
+    weights = np.array([(18-30**0.5)/36, (18+30**0.5)/36, (18+30**0.5)/36, (18-30**0.5)/36]) /2
+
+    # basis functions on the unit interval
+    phis = [lambda x :1-3*x*x+2*x*x*x, lambda x :x*(x-1)**2, lambda x :3*x*x - 2*x*x*x, lambda x :x*x*(x-1)]
+    # initialize and fill local matrix
+    s = np.zeros((4,4))
+    for i in range(4):
+        for j in range(4):
+            s[i,j] = weights[j] * phis[i](nodes[j]) 
+    # assemble global matrix
+    G = np.zeros((N*2,(N-1)*4))
+    for i in range(N-1):
+        G[2*i:2*i+4, 4*i:4*i+4] = s
+
+    # locations on the beam where q has to be evaluated ( 4 points per element)
+    q_nodes = np.tile(nodes,(N-1,1)) * np.tile(h,(4,1)).T + np.tile(grid[:-1],(4,1)).T
+    # compute q at those locations and scale each q value by the element length( the element at which this node happened to be)
+    q_vec = (q(q_nodes) * np.tile(h,(4,1)).T).flatten() 
+
+    LHS  = G @ q_vec
+    #np.set_printoptions(precision=3)
+    #print(LHS)
+    return LHS
 
 
 def fixBeam(S, RHS, e, d, BC):
