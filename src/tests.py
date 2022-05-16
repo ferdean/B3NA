@@ -58,7 +58,6 @@ def exact(x):
 
 S, RHS, (e0, eL), (d0, dL) = computeMatrices(grid, q, E, I, n_quad = 50)
 
-loc_S - get_lo
 S2 = get_global_matrices(grid, E, I, loc_S)
 Se, RHSe = fixBeam(S, RHS, (e0, eL), (d0, dL), BC)
 
