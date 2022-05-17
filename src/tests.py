@@ -44,7 +44,8 @@ E  = 210      # [N/mm2]
 I  = 3.3e7    # [mm4]
 k  = 10       # [N]
 L  = 1        # [m]
-nN = 30        # [-]
+nN = 30       # [-]
+mu = 0.1      # [kg/m]
 
 grid = np.linspace(0, L, nN)
 
@@ -59,8 +60,8 @@ def exact(x):
 #S, RHS, (e0, eL), (d0, dL) = computeMatrices(grid, q, E, I, n_quad = 50)
 
 
-loc_S = get_local_matrix()
-S = get_global_matrices(grid, E, I, loc_S)
+loc_S,loc_M = get_local_matrix()
+S,M = get_global_matrices(grid, E, I, loc_S, loc_M, mu)
 
 RHS = get_RHS(grid,q)
 e0 = np.zeros(nN*2)
@@ -78,3 +79,14 @@ sol      = sparse.linalg.spsolve(Se, RHSe)
 
 plotBeam(grid, sol[:-2], 100, exact)
 #print(sol)
+
+#%% Timedependent problem uses the variables defined in the fixed case
+
+u = sol
+u_1 = np.zeros(np.shape(sol))
+u_2 = np.copy(u_1)
+h = 0.1
+for i in range(100):
+    u,u_1,u_2 = Newmarkmethod_step(u,u_1,u_2,h,M,Se,RHSe)
+    
+# %%

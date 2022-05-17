@@ -288,17 +288,20 @@ def get_local_matrix():
     for i in range(4):
         for j in range(4):
             S[i,j] = float(sm.integrate(sm.diff(phi[i],x,2)*sm.diff(phi[j],x,2),(x,0,1)))
-    #a = 
-    #a = sm.diff(phi1,x,4)
-    #print(S)
-    return S
+ 
+    M = np.zeros((4,4))
 
+    for i in range(4):
+        for j in range(4):
+            M[i,j] = float(sm.integrate(phi[i]*phi[j],(x,0,1)))
+    return S,M
 
-def get_global_matrices(grid, E, I, loc_S):
+def get_global_matrices(grid, E, I, loc_S, loc_M, mu):
 
     N = grid.shape[0]*2
     S = np.zeros((N,N))
-    #S = loc_S/(h**3)
+    M = np.zeros((N,N))
+   
     first_mode = np.array([ [1,0,1,0],
                             [0,0,0,0],
                             [1,0,1,0],
@@ -325,10 +328,17 @@ def get_global_matrices(grid, E, I, loc_S):
     B = B * np.kron(np.eye(len(h_even)),loc_S)
     S[0:A.shape[0],0:A.shape[0]] += A
     S[2:B.shape[0]+2,2:B.shape[0]+2] += B
-    #print(h_odd)
-    #print(h_even)
-    #print(S)
-    return S*E*I
+    
+    # defining M matrix for timedependent case
+    A = np.kron(np.diag(h_odd),first_mode) + np.kron(np.diag(h_odd**2),second_mode) + np.kron(np.diag(h_odd**3),third_mode)
+    A = A * np.kron(np.eye(len(h_odd)),loc_M)
+
+    B = np.kron(np.diag(h_even),first_mode) + np.kron(np.diag(h_even**2),second_mode) + np.kron(np.diag(h_even**3),third_mode)
+    B = B * np.kron(np.eye(len(h_even)),loc_M)
+    M[0:A.shape[0],0:A.shape[0]] += A
+    M[2:B.shape[0]+2,2:B.shape[0]+2] += B    
+
+    return S*E*I, mu*M
 
 def get_RHS(grid,q):  
     # q(x) is a function that has to work with numpy arrays
@@ -365,7 +375,6 @@ def get_RHS(grid,q):
     #print(LHS)
     return LHS
 
-
 def fixBeam(S, RHS, e, d, BC):
     
     
@@ -383,3 +392,20 @@ def fixBeam(S, RHS, e, d, BC):
     
     return Se, RHSe
 
+def Newmarkmethod_step(u,u_1,u_2,h,M,S,p,beta = 1/4,gamma = 1/2):
+    #calculating intermediate steps, i.e. step (a) in the transcript
+    u_star = u + u_1*h+(0.5-beta)*u_2*h**2
+    u_1_star = u_1 + (1-gamma)*u_2*h
+    
+    #Creating and solving linear system to solve for u"_{j+1}
+    S = S.tocsr()
+    A = beta*h**2*S
+    A[0:M.shape[0],0:M.shape[1]] += M
+    b = p - S@u_1_star
+    u_2 = sparse.linalg.spsolve(A, b)
+
+    #Solving for u_{j+1}, u'_{j+1}
+    u = u_star + beta*h**2*u_2
+    u_1 = u_1_star + gamma*h*u_2
+
+    return u,u_1,u_2
