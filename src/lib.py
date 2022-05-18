@@ -9,7 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import fixed_quad
 from scipy import sparse
-
+import scipy as sp
 import sympy as sm
 
 def get_phi(grid, i, derivative = 0):
@@ -173,7 +173,7 @@ def plotBeam(grid, coeffs, nData, *argv):
     plt.rcParams['text.usetex'] = True
     plt.rcParams.update({'font.size' : 9})
     
-    fig, ax = plt.subplots(figsize=(5, 3), dpi = 3300)
+    fig, ax = plt.subplots(figsize=(5, 3), dpi = 200)
     
     ax.plot(x_plot, beam(x_plot) * 1e3, color= '#808080')
     ax.plot([grid.min(), grid.max()], [0, 0], color= '#959595', linestyle= '--')
@@ -194,7 +194,7 @@ def plotBeam(grid, coeffs, nData, *argv):
     plt.ylim(-bound, bound)
     
     plt.text(0.875, 0.425,'undeformed', ha='center', va='center', transform=ax.transAxes, color= '#959595')
-    
+    plt.show()
 
 
 
@@ -220,38 +220,21 @@ def get_local_matrix(verbose = False):
     
     for i in range(4):
         for j in range(4):
-            S[i,j] = float(sm.integrate(sm.diff(phi[i],x,2)*sm.diff(phi[j],x,2), (x, 0, 1)))
+            S[i,j] = float(sm.integrate(sm.diff(phi[i],x,2)*sm.diff(phi[j],x,2),(x,0,1)))
+ 
+    M = np.zeros((4,4))
 
-    if verbose: print(S)
-    
-    return S
+    for i in range(4):
+        for j in range(4):
+            M[i,j] = float(sm.integrate(phi[i]*phi[j],(x,0,1)))
+    return S,M
 
+def get_global_matrices(grid, E, I, loc_S, loc_M, mu):  
 
-def get_global_matrices(grid, E, I):
-    """
-    Stiffness matrix with constant E and I 
-    
-    Parameters
-    ----------
-    grid: {array}
-        Vector with gridpoints.
-    E: {function} or {scalar}
-        Young modulus [N/mm2]
-    I: {function} or {scalar}
-        Area moment of inertia.
-
-    Returns
-    -------
-    S: {array}
-        Stiffness matrix.
-    """
-    
-    N     = grid.shape[0]*2
-    S     = np.zeros((N,N))
-    loc_S = get_local_matrix()
-    
-    #S = loc_S/(h**3)
-    
+    N = grid.shape[0]*2
+    S = np.zeros((N,N))
+    M = np.zeros((N,N))
+   
     first_mode = np.array([ [1,0,1,0],
                             [0,0,0,0],
                             [1,0,1,0],
@@ -280,12 +263,51 @@ def get_global_matrices(grid, E, I):
     S[0:A.shape[0],0:A.shape[0]] += A
     S[2:B.shape[0]+2,2:B.shape[0]+2] += B
     
-    #print(h_odd)
-    #print(h_even)
-    #print(S)
-    
-    return S*E*I
+    # defining M matrix for timedependent case
+    A = np.kron(np.diag(h_odd),first_mode) + np.kron(np.diag(h_odd**2),second_mode) + np.kron(np.diag(h_odd**3),third_mode)
+    A = A * np.kron(np.eye(len(h_odd)),loc_M)
 
+    B = np.kron(np.diag(h_even),first_mode) + np.kron(np.diag(h_even**2),second_mode) + np.kron(np.diag(h_even**3),third_mode)
+    B = B * np.kron(np.eye(len(h_even)),loc_M)
+    M[0:A.shape[0],0:A.shape[0]] += A
+    M[2:B.shape[0]+2,2:B.shape[0]+2] += B    
+
+    return S*E*I, mu*M
+
+def get_RHS(grid,q):  
+    # q(x) is a function that has to work with numpy arrays
+    # Everything here is done in the matrix vector multiplication form(not super obvious, but less for loops)
+    # Since the test functions are 4th order, I decided to do 4-point gaus quadrature, not to waste precision
+     
+    N = len(grid)
+    h = grid[1:] - grid[0:-1]
+    # weights and nodes of Gaus quadrature for 4 points (scaled to integrate from 0 to 1)(original values from wikipedia)
+    # https://en.wikipedia.org/wiki/Gaussian_quadrature
+    nodes = (np.sort(np.array([(3/7 - (2/7)*(6/5)**0.5)**0.5, -(3/7 - (2/7)*(6/5)**0.5)**0.5 , 
+                              (3/7 + (2/7)*(6/5)**0.5)**0.5, -(3/7 + (2/7)*(6/5)**0.5)**0.5])) +1) /2
+    weights = np.array([(18-30**0.5)/36, (18+30**0.5)/36, (18+30**0.5)/36, (18-30**0.5)/36]) /2
+
+    # basis functions on the unit interval
+    phis = [lambda x :1-3*x*x+2*x*x*x, lambda x :x*(x-1)**2, lambda x :3*x*x - 2*x*x*x, lambda x :x*x*(x-1)]
+    # initialize and fill local matrix
+    s = np.zeros((4,4))
+    for i in range(4):
+        for j in range(4):
+            s[i,j] = weights[j] * phis[i](nodes[j]) 
+    # assemble global matrix
+    G = np.zeros((N*2,(N-1)*4))
+    for i in range(N-1):
+        G[2*i:2*i+4, 4*i:4*i+4] = s
+
+    # locations on the beam where q has to be evaluated ( 4 points per element)
+    q_nodes = np.tile(nodes,(N-1,1)) * np.tile(h,(4,1)).T + np.tile(grid[:-1],(4,1)).T
+    # compute q at those locations and scale each q value by the element length( the element at which this node happened to be)
+    q_vec = (q(q_nodes) * np.tile(h,(4,1)).T).flatten() 
+
+    LHS  = G @ q_vec
+    #np.set_printoptions(precision=3)
+    #print(LHS)
+    return LHS
 
 def fixBeam(S, RHS, e, d, BC):
         
@@ -303,3 +325,20 @@ def fixBeam(S, RHS, e, d, BC):
     
     return Se, RHSe
 
+def Newmarkmethod_step(u,u_1,u_2,h,M,S,p,beta = 1/4,gamma = 1/2):
+    #calculating intermediate steps, i.e. step (a) in the transcript
+    u_star = u + u_1*h+(0.5-beta)*u_2*h**2
+    u_1_star = u_1 + (1-gamma)*u_2*h
+    
+    #Creating and solving linear system to solve for u"_{j+1}
+    S = S.tocsr()
+    A = beta*h**2*S
+    A[0:M.shape[0],0:M.shape[1]] += M
+    b = p - S@u_1_star
+    u_2 = sparse.linalg.spsolve(A, b)
+
+    #Solving for u_{j+1}, u'_{j+1}
+    u = u_star + beta*h**2*u_2
+    u_1 = u_1_star + gamma*h*u_2
+
+    return u,u_1,u_2
