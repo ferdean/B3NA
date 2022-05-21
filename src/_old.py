@@ -7,82 +7,82 @@ Old versions of functions
 import numpy as np
 from lib import *
 
-def computeMatrices(grid, q, E, I, n_quad = 40):
+def get_local_matrix(verbose = False):
     """
-    Stiffness, inhomogeneity and physical/natural BC matrices computation
-    
-    Parameters
-    ----------
-    grid: {array}
-        Vector with gridpoints.
-    q:  {function}
-        Right-hand-side of the differential equation.
-    E: {function} or {scalar}
-        Young modulus [N/mm2]
-    I: {function} or {scalar}
-        Area moment of inertia.
-    n_quad: {scalar, optional}
-        Order of the quadrature rule (numerical integration). Default is 40.
-
-    Returns
-    -------
-    S: {array}
-        Stiffness matrix.
-    RHS: {array}
-        Right-hand-side matrix
-    ex: {array}
-        Vector of basis functions
-    dx: {array}
-        Vector of derivatives of basis functions
-
+    Computes the local stiffness matrix on an isoparameterized element of length
+    equal to 1. Works for constant material properties.     
     """
-        
-    if callable(E): 
-        constantprops = False 
-    else: 
-        constantprops = True;
+    # <><><><><><>
+      
+    xi = sm.Symbol('xi')
     
-    N   = grid.shape[0]
-    L   = grid[-1]            # in 1D grid
-    S   = np.zeros((2*N, 2*N))
-    RHS = np.zeros((2*N,))
+    if verbose: print("done")
     
-    e0  = np.zeros((2*N,))
-    eL  = np.zeros((2*N,))
-    d0  = np.zeros((2*N,))
-    dL  = np.zeros((2*N,))
-       
-    # Implementation with for loops (should be avoided) and unoptimized (dense matrices). 
-    # Will be updated in further versions:
-    for j in range(0, 2*N, 2):
-        
-        phi_j         = get_phi(grid, j//2, derivative = 0)
-        phi_j_prime   = get_phi(grid, j//2, derivative = 1)
-                
-        RHS[j], _     = fixed_quad(lambda x: q(x) * phi_j(x)[0], 0, L, n = n_quad)
-        RHS[j + 1], _ = fixed_quad(lambda x: q(x) * phi_j(x)[1], 0, L, n = n_quad)
-        
-        e0[j]         = phi_j(0)[0];   eL[j]      = phi_j(L)[0]
-        e0[j + 1]     = phi_j(0)[1];   eL[j + 1]  = phi_j(L)[1]
-        
-        d0[j]         = phi_j_prime(0)[0];   dL[j]      = phi_j_prime(L)[0]
-        d0[j + 1]     = phi_j_prime(0)[1];   dL[j + 1]  = phi_j_prime(L)[1]
-        
-        for k in range(0, 2*N, 2):
+    S = np.zeros((4,4))
+    
+    phi1 = 1 - 3 * xi**2 + 2 * xi**3
+    phi2 = xi * (xi - 1)**2
+    phi3 = 3 * xi**2 - 2 * xi**3
+    phi4 = xi**2 * (xi - 1)
+    phi  = [phi1, phi2, phi3, phi4]
+    
+    for i in range(4):
+        for j in range(4):
+            S[i,j] = float(sm.integrate(sm.diff(phi[i], xi, 2)*sm.diff(phi[j], xi ,2), (xi, 0, 1)))
+ 
+    M = np.zeros((4,4))
+
+    for i in range(4):
+        for j in range(4):
+            M[i,j] = float(sm.integrate(phi[i]*phi[j], (xi, 0, 1)))
             
-            phi_j = get_phi(grid, j//2, derivative = 2)
-            phi_k = get_phi(grid, k//2, derivative = 2)
-                        
-            if constantprops: 
-                S[j, k], _         = fixed_quad(lambda x: E * I * phi_j(x)[0] * phi_k(x)[0], 0, L, n = n_quad)
-                S[j + 1, k], _     = fixed_quad(lambda x: E * I * phi_j(x)[1] * phi_k(x)[0], 0, L, n = n_quad)
-                S[j, k + 1], _     = fixed_quad(lambda x: E * I * phi_j(x)[0] * phi_k(x)[1], 0, L, n = n_quad)
-                S[j + 1, k + 1], _ = fixed_quad(lambda x: E * I * phi_j(x)[1] * phi_k(x)[1], 0, L, n = n_quad)
-                
-            else: 
-                S[j, k], _         = fixed_quad(lambda x: E(x) * I(x) * phi_j(x)[0] * phi_k(x)[0], 0, L, n = n_quad)
-                S[j + 1, k], _     = fixed_quad(lambda x: E(x) * I(x) * phi_j(x)[1] * phi_k(x)[0], 0, L, n = n_quad)
-                S[j, k + 1], _     = fixed_quad(lambda x: E(x) * I(x) * phi_j(x)[0] * phi_k(x)[1], 0, L, n = n_quad)
-                S[j + 1, k + 1], _ = fixed_quad(lambda x: E(x) * I(x) * phi_j(x)[1] * phi_k(x)[1], 0, L, n = n_quad)
-                
-    return sparse.csr_matrix(S), RHS, (e0, eL), (d0, dL)
+    return S, M
+
+def get_global_matrices(grid, E, I, loc_S, loc_M, mu):  
+    """
+    Computes the local stiffness matrix on an isoparameterized element of length
+    equal to 1. Works for constant material properties.    
+    """
+    N = grid.shape[0]*2
+    S = np.zeros((N,N))
+    M = np.zeros((N,N))
+   
+    first_mode = np.array([ [1,0,1,0],
+                            [0,0,0,0],
+                            [1,0,1,0],
+                            [0,0,0,0] ])
+
+    second_mode = np.array([ [0,1,0,1],
+                             [1,0,1,0],
+                             [0,1,0,1],
+                             [1,0,1,0] ])
+
+    third_mode = np.array([ [0,0,0,0],
+                            [0,1,0,1],
+                            [0,0,0,0],
+                            [0,1,0,1] ])
+
+    
+    h_array = grid[1:] - grid[0:-1]
+    h_odd  = np.take(h_array, np.arange(0,len(h_array),2))
+    h_even = np.take(h_array, np.arange(1,len(h_array),2))
+    
+    A = np.kron(np.diag(h_odd**-3),first_mode) + np.kron(np.diag(h_odd**-2),second_mode) + np.kron(np.diag(h_odd**-1), third_mode)
+    A = A * np.kron(np.eye(len(h_odd)), loc_S)
+
+    B = np.kron(np.diag(h_even**-3),first_mode) + np.kron(np.diag(h_even**-2),second_mode) + np.kron(np.diag(h_even**-1),third_mode)
+    B = B * np.kron(np.eye(len(h_even)), loc_S)
+    
+    S[0:A.shape[0],0:A.shape[0]] += A
+    S[2:B.shape[0]+2,2:B.shape[0]+2] += B
+    
+    # defining M matrix for timedependent case
+    A = np.kron(np.diag(h_odd),first_mode) + np.kron(np.diag(h_odd**2),second_mode) + np.kron(np.diag(h_odd**3),third_mode)
+    A = A * np.kron(np.eye(len(h_odd)),loc_M)
+
+    B = np.kron(np.diag(h_even),first_mode) + np.kron(np.diag(h_even**2),second_mode) + np.kron(np.diag(h_even**3),third_mode)
+    B = B * np.kron(np.eye(len(h_even)),loc_M)
+    M[0:A.shape[0],0:A.shape[0]] += A
+    M[2:B.shape[0]+2,2:B.shape[0]+2] += B    
+
+    return S*E*I, mu*M

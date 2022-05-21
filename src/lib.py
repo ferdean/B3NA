@@ -12,6 +12,11 @@ from scipy import sparse
 import scipy as sp
 import sympy as sm
 
+
+# ++++++++++++++++++++++++++++++++++++++++++++++
+# +             BASIS FUNCTIONS                +
+# ++++++++++++++++++++++++++++++++++++++++++++++
+
 def get_phi(grid, i, derivative = 0):
     """
     Computes the functions that form the ansatz space Vh, where Vh is a space 
@@ -117,6 +122,277 @@ def get_phi(grid, i, derivative = 0):
     return phi
 
 
+def getGaussParams():
+    nodes = (np.sort(np.array([(3/7 - (2/7)*(6/5)**0.5)**0.5, -(3/7 - (2/7)*(6/5)**0.5)**0.5 , 
+                              (3/7 + (2/7)*(6/5)**0.5)**0.5, -(3/7 + (2/7)*(6/5)**0.5)**0.5])) +1) /2
+    weights = np.array([(18-30**0.5)/36, (18+30**0.5)/36, (18+30**0.5)/36, (18-30**0.5)/36]) /2
+    
+    return nodes, weights
+
+
+# ++++++++++++++++++++++++++++++++++++++++++++++
+# +             MATRICES COMPUT.               +
+# ++++++++++++++++++++++++++++++++++++++++++++++
+    
+    
+def getMatrices(grid, E, I, mu, quadrature = True):
+    """
+    Computes mass and stiffness matrices for a 1D problem. 
+
+    Parameters
+    ----------
+    grid: {array}
+        Vector with gridpoints.
+    E: {function} or {scalar}
+        Young modulus [N/mm2]
+    I: {function} or {scalar}
+        Area moment of inertia.
+    mu: {function} or {scalar}
+        Density.
+    quadrature: {boolean, optional}
+        States if the integration is performed numercially (True) or 
+        anallytically (False). The default is True.
+
+    Returns
+    -------
+    S: {array}
+        Stiffness matrix.
+    M: {array}
+        Mass matrix.
+
+    """      
+    def getLocalMatrices(idx):
+        
+        if callable(E): 
+            constantprops = False 
+        else: 
+            constantprops = True;
+        
+        x0 = grid[idx]
+        x1 = grid[idx + 1]
+        
+        S = np.zeros((4,4))        
+        M = np.zeros((4,4))
+        
+        h  = (x1 - x0)
+                    
+        first_mode = np.array([ [1,0,1,0],
+                                [0,0,0,0],
+                                [1,0,1,0],
+                                [0,0,0,0] ])  * h**-3
+
+        second_mode = np.array([ [0,1,0,1],
+                                 [1,0,1,0],
+                                 [0,1,0,1],
+                                 [1,0,1,0] ]) * h**-2
+    
+        third_mode = np.array([ [0,0,0,0],
+                                [0,1,0,1],
+                                [0,0,0,0],
+                                [0,1,0,1] ]) * h**-1
+        
+        h_array = first_mode + second_mode + third_mode
+            
+        if not quadrature:
+            xi = sm.Symbol('xi')
+            x  = (x1 - x0) * xi + x0
+
+            phi1 = 1 - 3 * xi**2 + 2 * xi**3
+            phi2 = xi * (xi - 1)**2
+            phi3 = 3 * xi**2 - 2 * xi**3
+            phi4 = xi**2 * (xi - 1)
+            phi  = [phi1, phi2, phi3, phi4]
+    
+            if constantprops:
+                for i in range(4):
+                    for j in range(4):
+                    
+                        S[i,j] = float(sm.integrate(sm.diff(phi[i], xi, 2)*sm.diff(phi[j], xi ,2), (xi, 0, 1)))
+                        M[i,j] = float(sm.integrate(phi[i]*phi[j],                                 (xi, 0, 1))) 
+                                        
+                S = S*E*I
+                M = mu*M
+                        
+            else:
+                for i in range(4):
+                    for j in range(4):
+                        
+                        # TBD: Check if we need to multiply with Jacobian (x1 - x0)
+                        
+                        S[i,j] = float(sm.integrate(E(x) * I(x) * sm.diff(phi[i], xi, 2)*sm.diff(phi[j], xi ,2), (xi, 0, 1)))
+                        M[i,j] = float(sm.integrate(mu(x) * phi[i]*phi[j],                                       (xi, 0, 1)))      
+
+        else:
+                             
+            phi   = [lambda x :1-3*x*x+2*x*x*x, lambda x :x*(x-1)**2, lambda x :3*x*x - 2*x*x*x, lambda x :x*x*(x-1)]
+            ddphi = [lambda x :-6 + 12 * x, lambda x :6 * x - 4, lambda x :6 - 12 * x, lambda x :6 * x - 2]
+            
+            nodes, weights = getGaussParams()
+            
+            if constantprops: 
+                 for i in range(4):
+                    for j in range(4):
+                        for k in range(4):
+                            S[i,j] += weights[k] * E * I * ddphi[i](nodes[k])  * ddphi[j](nodes[k]) 
+                            M[i,j] += weights[k] * mu * phi[j](nodes[k]) 
+            else:
+                
+                for i in range(4):
+                    for j in range(4):
+                        for k in range(4):
+                            S[i,j] += weights[k] * E((x1 - x0) * nodes[k] + x0) * I((x1 - x0) * nodes[k] + x0) * ddphi[i](nodes[k])  * ddphi[j](nodes[k])
+                            M[i,j] += weights[k] * mu(nodes[k]) * phi[i](nodes[k])  * phi[j](nodes[k])
+                        
+        return np.multiply(S, h_array), np.multiply(M, h_array)
+        
+    # ++++++++++++++++++++++++++++++++++++++++++++++
+    # +            Function starts here            +
+    # ++++++++++++++++++++++++++++++++++++++++++++++
+       
+    nN    = grid.shape[0]  # Number of nodes
+    nE    = nN - 1         # Number of elements
+    nNe   = 2              # Number of nodes per element
+    nDOFn = 2              # Number of DOF per node
+    nDOFg = nDOFn * nN     # Global number of DOF
+    nDOFe = nDOFn * nNe    # Number of DOF per element
+    
+    S = np.zeros((nDOFg, nDOFg))
+    M = np.zeros((nDOFg, nDOFg))
+    
+    Ig = np.zeros((nDOFe**2 + (nE - 1)*nDOFe**2,))
+    Jg = np.zeros((nDOFe**2 + (nE - 1)*nDOFe**2,))
+    Mg = np.zeros((nDOFe**2 + (nE - 1)*nDOFe**2,))
+    Sg = np.zeros((nDOFe**2 + (nE - 1)*nDOFe**2,))
+    
+    top = np.repeat(range(nN), 2)[1:-1]  # Topology matrix
+    top = top.reshape((-1, nNe))
+        
+    for idx in range(nE):
+        e_k = np.array([top[idx, 0] + idx, top[idx, 0] + idx + 1, 
+                        top[idx, 0] + idx + 2, top[idx, 0] + idx + 3])  # Local DOF
+        
+        S_loc, M_loc = getLocalMatrices(idx)
+        
+        # Matrix fast assembly [ref: F. Cuvelier, et al, arXiv preprint arXiv:1305.3122]     
+        t     = np.array(range(nDOFe))
+        Tt, T = np.meshgrid(t, t)
+        
+        ii  = T.flatten()
+        jj  = Tt.flatten()
+        kk  = np.array(range(nDOFe**2))
+        kkk = kk + nDOFe**2 * (idx)
+        
+        Ig[kkk] = e_k[ii]
+        Jg[kkk] = e_k[jj]
+        Mg[kkk] = M_loc.flatten() 
+        Sg[kkk] = S_loc.flatten()
+    
+    M = sp.sparse.csc_matrix((Mg, (Ig, Jg)), shape = (nDOFg, nDOFg))
+    S = sp.sparse.csc_matrix((Sg, (Ig, Jg)), shape = (nDOFg, nDOFg))
+       
+    return S, M 
+
+
+def getRHS(grid, q): 
+    """
+    Computes inhomogeneity. Everything is done in the matrix-vector multiplication 
+    form (not super obvious, but less for loops and increased efficiency). Since 
+    the test functions are 4th order, it has been decided to do 4-point gauss 
+    quadrature, not to waste precision
+
+    Parameters
+    ----------
+    grid: {array}
+        Vector with gridpoints.
+    q: {function}
+        Applied force. It has to work with numpy arrays
+
+    Returns
+    -------
+    RHS: {vector}
+        Right-hand-side.
+
+    """
+    
+    N = len(grid)
+    h = grid[1:] - grid[0:-1]
+    
+    nodes, weights = getGaussParams() # 4-point Gauss quadrature (https://en.wikipedia.org/wiki/Gaussian_quadrature)
+
+    # Basis functions on the unit interval
+    phis = [lambda x :1-3*x*x+2*x*x*x, lambda x :x*(x-1)**2, lambda x :3*x*x - 2*x*x*x, lambda x :x*x*(x-1)]
+    
+    # Initialize and fill local matrix
+    s = np.zeros((4,4))
+    
+    for i in range(4):
+        for j in range(4):
+            s[i,j] = weights[j] * phis[i](nodes[j]) 
+            
+    # Global matrix assembly
+    G = np.zeros((N*2,(N-1)*4))
+    
+    for i in range(N-1):
+        G[2*i:2*i+4, 4*i:4*i+4] = s
+
+    # Locations on the beam where q has to be evaluated (4 points per element)
+    q_nodes = np.tile(nodes,(N-1,1)) * np.tile(h,(4,1)).T + np.tile(grid[:-1],(4,1)).T
+    
+    # Compute q at those locations and scale each q value by the element length(the element at which this node happened to be)
+    q_vec = (q(q_nodes) * np.tile(h,(4,1)).T).flatten() 
+
+    RHS  = G @ q_vec
+    
+    return RHS
+
+def fixBeam(S, RHS, e, d, BC):
+    """
+    Applies boundary conditions to the problem
+
+    Parameters
+    ----------
+    S: {array}
+        Free stiffness matrix.
+    RHS: {vector} 
+        Free right-hand-side of the equation (inhomogeneities).
+    e: {array}
+        Basis functions evaluated at x = 0 and x = L.
+    d: {array} 
+        Derivatives of basis functions evaluated at x = 0 and x = L.
+    BC: {Tuple}
+        Boundary conditions, such that
+            *BC[0] = Deformation at x = 0 (essential bc)
+            *BC[1] = Derivative of the deformation at x = 0 (essential bc)
+            *BC[2] = Shear force at x = L (physical bc)
+            *BC[3] = Bending moment at x = L (physical bc)
+
+    Returns
+    -------
+    Se: {array}
+        Constrained stiffness matrix.
+    RHSe: {vector}
+        Constrained right-hand-side.
+    """   
+    
+    e0, eL = e
+    d0, dL = d
+    a, b, QL, ML = BC
+    
+    basisVector = sparse.csr_matrix(np.vstack((e0, d0)))
+        
+    RHSe = RHS + QL * eL + ML * dL
+    RHSe = np.hstack((RHSe, np.array([a, b])))
+    
+    Se   = sparse.vstack((S, basisVector))
+    Se   = sparse.hstack((Se, (sparse.hstack((basisVector, sparse.csr_matrix((2, 2))))).T))
+    
+    return Se, RHSe
+
+
+# ++++++++++++++++++++++++++++++++++++++++++++++
+# +               POSTPROCESS                  +
+# ++++++++++++++++++++++++++++++++++++++++++++++
+
 def get_sol(grid, coeffs):
     """
     Returns the solution function
@@ -175,11 +451,11 @@ def plotBeam(grid, coeffs, nData, *argv):
     
     fig, ax = plt.subplots(figsize=(5, 3), dpi = 200)
     
-    ax.plot(x_plot, beam(x_plot) * 1e3, color= '#808080')
+    ax.plot(x_plot, beam(x_plot) * 1e3, color= '#808080', label = 'numerical')
     ax.plot([grid.min(), grid.max()], [0, 0], color= '#959595', linestyle= '--')
     
     for arg in argv: 
-        ax.plot(x_plot, arg(x_plot) * 1e3, color = 'r', linestyle = '-.')
+        ax.plot(x_plot, arg(x_plot) * 1e3, color = 'r', linestyle = '-.', label = 'exact')
     
     ax.axvline(x=0, color="black", linestyle="-", linewidth = 5)
     
@@ -194,136 +470,17 @@ def plotBeam(grid, coeffs, nData, *argv):
     plt.ylim(-bound, bound)
     
     plt.text(0.875, 0.425,'undeformed', ha='center', va='center', transform=ax.transAxes, color= '#959595')
+    
+    plt.legend(loc = 'lower left')
+    
     plt.show()
 
 
 
-def get_local_matrix(verbose = False):
-    """
-    Computes the local stiffness matrix on an isoparameterized element of length
-    equal to 1
-    
-    """
-    # <><><><><><>
-      
-    x = sm.Symbol('x')
-    
-    if verbose: print("done")
-    
-    S = np.zeros((4,4))
-    
-    phi1 = 1 - 3* x**2 + 2 * x**3
-    phi2 = x* (x-1)**2
-    phi3 = 3*x**2 - 2*x**3
-    phi4 = x**2 * (x-1)
-    phi  = [phi1, phi2, phi3, phi4]
-    
-    for i in range(4):
-        for j in range(4):
-            S[i,j] = float(sm.integrate(sm.diff(phi[i],x,2)*sm.diff(phi[j],x,2),(x,0,1)))
- 
-    M = np.zeros((4,4))
+# ++++++++++++++++++++++++++++++++++++++++++++++
+# +              NEWMARK METHOD                +
+# ++++++++++++++++++++++++++++++++++++++++++++++
 
-    for i in range(4):
-        for j in range(4):
-            M[i,j] = float(sm.integrate(phi[i]*phi[j],(x,0,1)))
-    return S,M
-
-def get_global_matrices(grid, E, I, loc_S, loc_M, mu):  
-
-    N = grid.shape[0]*2
-    S = np.zeros((N,N))
-    M = np.zeros((N,N))
-   
-    first_mode = np.array([ [1,0,1,0],
-                            [0,0,0,0],
-                            [1,0,1,0],
-                            [0,0,0,0] ])
-
-    second_mode = np.array([ [0,1,0,1],
-                             [1,0,1,0],
-                             [0,1,0,1],
-                             [1,0,1,0] ])
-
-    third_mode = np.array([ [0,0,0,0],
-                            [0,1,0,1],
-                            [0,0,0,0],
-                            [0,1,0,1] ])
-
-    
-    h_array = grid[1:] - grid[0:-1]
-    h_odd  = np.take(h_array, np.arange(0,len(h_array),2))
-    h_even = np.take(h_array, np.arange(1,len(h_array),2))
-    A = np.kron(np.diag(h_odd**-3),first_mode) + np.kron(np.diag(h_odd**-2),second_mode) + np.kron(np.diag(h_odd**-1),third_mode)
-    A = A * np.kron(np.eye(len(h_odd)),loc_S)
-
-    B = np.kron(np.diag(h_even**-3),first_mode) + np.kron(np.diag(h_even**-2),second_mode) + np.kron(np.diag(h_even**-1),third_mode)
-    B = B * np.kron(np.eye(len(h_even)),loc_S)
-    
-    S[0:A.shape[0],0:A.shape[0]] += A
-    S[2:B.shape[0]+2,2:B.shape[0]+2] += B
-    
-    # defining M matrix for timedependent case
-    A = np.kron(np.diag(h_odd),first_mode) + np.kron(np.diag(h_odd**2),second_mode) + np.kron(np.diag(h_odd**3),third_mode)
-    A = A * np.kron(np.eye(len(h_odd)),loc_M)
-
-    B = np.kron(np.diag(h_even),first_mode) + np.kron(np.diag(h_even**2),second_mode) + np.kron(np.diag(h_even**3),third_mode)
-    B = B * np.kron(np.eye(len(h_even)),loc_M)
-    M[0:A.shape[0],0:A.shape[0]] += A
-    M[2:B.shape[0]+2,2:B.shape[0]+2] += B    
-
-    return S*E*I, mu*M
-
-def get_RHS(grid,q):  
-    # q(x) is a function that has to work with numpy arrays
-    # Everything here is done in the matrix vector multiplication form(not super obvious, but less for loops)
-    # Since the test functions are 4th order, I decided to do 4-point gaus quadrature, not to waste precision
-     
-    N = len(grid)
-    h = grid[1:] - grid[0:-1]
-    # weights and nodes of Gaus quadrature for 4 points (scaled to integrate from 0 to 1)(original values from wikipedia)
-    # https://en.wikipedia.org/wiki/Gaussian_quadrature
-    nodes = (np.sort(np.array([(3/7 - (2/7)*(6/5)**0.5)**0.5, -(3/7 - (2/7)*(6/5)**0.5)**0.5 , 
-                              (3/7 + (2/7)*(6/5)**0.5)**0.5, -(3/7 + (2/7)*(6/5)**0.5)**0.5])) +1) /2
-    weights = np.array([(18-30**0.5)/36, (18+30**0.5)/36, (18+30**0.5)/36, (18-30**0.5)/36]) /2
-
-    # basis functions on the unit interval
-    phis = [lambda x :1-3*x*x+2*x*x*x, lambda x :x*(x-1)**2, lambda x :3*x*x - 2*x*x*x, lambda x :x*x*(x-1)]
-    # initialize and fill local matrix
-    s = np.zeros((4,4))
-    for i in range(4):
-        for j in range(4):
-            s[i,j] = weights[j] * phis[i](nodes[j]) 
-    # assemble global matrix
-    G = np.zeros((N*2,(N-1)*4))
-    for i in range(N-1):
-        G[2*i:2*i+4, 4*i:4*i+4] = s
-
-    # locations on the beam where q has to be evaluated ( 4 points per element)
-    q_nodes = np.tile(nodes,(N-1,1)) * np.tile(h,(4,1)).T + np.tile(grid[:-1],(4,1)).T
-    # compute q at those locations and scale each q value by the element length( the element at which this node happened to be)
-    q_vec = (q(q_nodes) * np.tile(h,(4,1)).T).flatten() 
-
-    LHS  = G @ q_vec
-    #np.set_printoptions(precision=3)
-    #print(LHS)
-    return LHS
-
-def fixBeam(S, RHS, e, d, BC):
-        
-    e0, eL = e
-    d0, dL = d
-    a, b, QL, ML = BC
-    
-    basisVector = sparse.csr_matrix(np.vstack((e0, d0)))
-        
-    RHSe = RHS + QL * eL + ML * dL
-    RHSe = np.hstack((RHSe, np.array([a, b])))
-    
-    Se   = sparse.vstack((S, basisVector))
-    Se   = sparse.hstack((Se, (sparse.hstack((basisVector, sparse.csr_matrix((2, 2))))).T))
-    
-    return Se, RHSe
 
 def Newmarkmethod_step(u,u_1,u_2,h,M,S,p,beta = 1/4,gamma = 1/2):
     #calculating intermediate steps, i.e. step (a) in the transcript
