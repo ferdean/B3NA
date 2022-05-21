@@ -6,6 +6,7 @@ Old versions of functions
 """
 import numpy as np
 from lib import *
+import sympy as sm
 
 # +++++++++++++++++++++++++++++++++++++++++++++++
 # +    Constant material properties (Vova's)    +

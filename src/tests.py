@@ -2,7 +2,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from lib import *
-from _old import *
 
 # %% Matrix computation and solver tests
 
@@ -29,31 +28,19 @@ def q(x):
 def exact(x):
     return (20*k*L**3*x**2 - 10*k*L**2*x**3 + k*x**5)/(120*E*I)
 
+S, M  = getMatrices(grid, E, I, mu, quadrature = True)
+RHS   = getRHS(grid, q)
 
-# Compute matrices
-loc_S, loc_M = get_local_matrix()
-S, M         = get_global_matrices(grid, E, I, loc_S, loc_M, mu)
-
-RHS = get_RHS(grid,q)
-
-e0 = np.zeros(nN*2)
-e0[0]= 1.0
-
-eL = np.zeros(nN*2)
-eL[-1]= 1.0
-
-d0 = np.zeros(nN*2)
-d0[1] = 1.0
-
-dL = np.zeros(nN*2)
-dL[-2] = 1.0
+e0 = np.zeros(nN*2);    e0[0]  = 1.0
+eL = np.zeros(nN*2);    eL[-1] = 1.0
+d0 = np.zeros(nN*2);    d0[1]  = 1.0
+dL = np.zeros(nN*2);    dL[-2] = 1.0
 
 # Apply BCs
-Se, RHSe = fixBeam(S, RHS, (e0, eL), (d0, dL), BC)
+Me, Se, RHSe = fixBeam(M, S, RHS, (e0, eL), (d0, dL), BC)
 
-# Solver
+# Solve
 sol      = sparse.linalg.spsolve(Se, RHSe)
-
 plotBeam(grid, sol[:-2], 100, exact)
 
 # %% Check computational cost 
@@ -90,4 +77,5 @@ for i in range(100):
         plotBeam(grid, u[:-2], 100, exact)
         difference = np.linalg.norm(u-u_copy)
         print(difference)
+        
 # %%
