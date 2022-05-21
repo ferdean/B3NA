@@ -7,6 +7,10 @@ Old versions of functions
 import numpy as np
 from lib import *
 
+# +++++++++++++++++++++++++++++++++++++++++++++++
+# +    Constant material properties (Vova's)    +
+# +++++++++++++++++++++++++++++++++++++++++++++++
+
 def get_local_matrix(verbose = False):
     """
     Computes the local stiffness matrix on an isoparameterized element of length
