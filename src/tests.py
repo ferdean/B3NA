@@ -120,13 +120,21 @@ error = np.linalg.norm(sym_S.toarray() - quad_S.toarray(), ord = 2)
 print("--- Error: %.2E" % (error))
 
 
-#%% Timedependent problem uses the variables defined in the fixed case
+#%% Timedependent problem uses as initial condition the solution obtained from the steady state case
+# and forcing set to zero now 
 
 u = sol
 u_1 = np.zeros(np.shape(sol))
 u_2 = np.copy(u_1)
-h = 0.1
-for i in range(100):
-    u,u_1,u_2 = Newmarkmethod_step(u,u_1,u_2,h,M,Se,RHSe)
-    
 
+h = 1
+
+for i in range(100):
+    u_copy = np.copy(u)
+    u,u_1,u_2 = Newmarkmethod_step(u,u_1,u_2,h,Me,Se,RHSe)
+
+    if i%20 == 0:
+        plotBeam(grid, u[:-2], 100, exact)
+        difference = np.linalg.norm(u-u_copy)
+        print(difference)
+# %%
