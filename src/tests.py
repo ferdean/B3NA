@@ -97,7 +97,7 @@ d0 = np.zeros(nN*2);    d0[1]  = 1.0
 dL = np.zeros(nN*2);    dL[-2] = 1.0
 
 # Apply BCs
-Se, RHSe = fixBeam(S, RHS, (e0, eL), (d0, dL), BC)
+Me, Se, RHSe = fixBeam(M, S, RHS, (e0, eL), (d0, dL), BC)
 
 # Solve
 sol      = sparse.linalg.spsolve(Se, RHSe)

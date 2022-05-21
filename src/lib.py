@@ -345,7 +345,7 @@ def getRHS(grid, q):
     
     return RHS
 
-def fixBeam(S, RHS, e, d, BC):
+def fixBeam(M, S, RHS, e, d, BC):
     """
     Applies boundary conditions to the problem
 
@@ -374,19 +374,23 @@ def fixBeam(S, RHS, e, d, BC):
         Constrained right-hand-side.
     """   
     
+    nDOF = M.shape[0]
+    
     e0, eL = e
     d0, dL = d
     a, b, QL, ML = BC
     
     basisVector = sparse.csr_matrix(np.vstack((e0, d0)))
-        
+            
     RHSe = RHS + QL * eL + ML * dL
     RHSe = np.hstack((RHSe, np.array([a, b])))
     
     Se   = sparse.vstack((S, basisVector))
     Se   = sparse.hstack((Se, (sparse.hstack((basisVector, sparse.csr_matrix((2, 2))))).T))
     
-    return Se, RHSe
+    Me   = sparse.vstack((sparse.hstack((M, sparse.csr_matrix((nDOF, 2)))), sparse.csr_matrix((2, nDOF + 2))))
+    
+    return Me, Se, RHSe
 
 
 # ++++++++++++++++++++++++++++++++++++++++++++++
