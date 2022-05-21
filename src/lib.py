@@ -235,8 +235,7 @@ def getMatrices(grid, E, I, mu, quadrature = True):
                         for k in range(4):
                             S[i,j] += weights[k] * E * I * ddphi[i](nodes[k])  * ddphi[j](nodes[k]) 
                             M[i,j] += weights[k] * mu * phi[j](nodes[k]) 
-            else:
-                
+            else:             
                 for i in range(4):
                     for j in range(4):
                         for k in range(4):
@@ -344,6 +343,24 @@ def getRHS(grid, q):
     RHS  = G @ q_vec
     
     return RHS
+
+
+def getPointForce(grid, nodeID, forces):
+    
+    nN    = grid.shape[0]  # Number of nodes
+    nDOFn = 2              # Number of DOF per node
+    nDOFg = nDOFn * nN     # Global number of DOF
+    nNe   = 2
+    
+    top = np.repeat(range(nN), 2)[1:-1]  # Topology matrix
+    top = top.reshape((-1, nNe))
+    
+    RHS = np.zeros((nDOFg,))
+    
+    RHS[2*nodeID] = forces
+             
+    return RHS
+
 
 def fixBeam(M, S, RHS, e, d, BC):
     """
