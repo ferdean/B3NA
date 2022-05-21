@@ -63,9 +63,9 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
 ## Roadmap 
 
 - [ ] Single beam, static case
-    - [ ] Implement static deformation of cantilever beam
+    - [x] Implement static deformation of cantilever beam
     - [ ] Implement different BC (e. g. beam supported at both ends)
-    - [ ] Develop analytic solutions to design tests and validation cases
+    - [x] Develop analytic solutions to design tests and validation cases
     - [ ] Clean code, collect everything in packages/libraries and objects
 - [ ] Single beam, dynamic case
     - [ ] Implement time-dependent solver (and repeat all points of static case)
