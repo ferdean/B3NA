@@ -1,6 +1,6 @@
 <div id="top"></div>
 
-# Bending of Bernoulli beams - numerical analysis
+# Bending of Bernoulli Beams - Numerical Analysis (**B3NA**)
 
 Python implementation of the finite element method (FEM) to solve the bending equation for an elastic Bernoulli beam. For the sake of simplicity, we do not use Sobolev spaces and work with piecewise differentiable functions instead. The repository also includes tests and experiments to validate the correct functionality of the package and to illustrate how to get started with it. 
 
@@ -68,10 +68,11 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
     - [x] Develop analytic solutions to design tests and validation cases
     - [ ] Clean code, collect everything in packages/libraries and objects
 - [ ] Single beam, dynamic case
-    - [ ] Implement time-dependent solver (and repeat all points of static case)
-    - [ ] Test homogeneous case with a deformed initial condition
-    - [ ] Test non-homogeneous cases
-    - [ ] Develop visualization library supporting animations (Newmark-method)
+    - [x] Implement time-dependent solver (and repeat all points of static case)
+    - [x] Test homogeneous case with a deformed initial condition
+    - [x] Test non-homogeneous cases
+    - [ ] Develop visualization library + GUI supporting animations (Newmark-method)
+- [ ] Eigenvalue analysis
 - [ ] Vibration of frameworks of beams
     - [ ] Implementation of a 2D solver for frameworks
     - [ ] Implementation of a 3D solver for framekorks
