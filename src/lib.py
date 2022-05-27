@@ -286,8 +286,8 @@ def getMatrices(grid, E, I, mu, quadrature = True):
         Mg[kkk] = M_loc.flatten() 
         Sg[kkk] = S_loc.flatten()
     
-    M = sp.sparse.csc_matrix((Mg, (Ig, Jg)), shape = (nDOFg, nDOFg))
-    S = sp.sparse.csc_matrix((Sg, (Ig, Jg)), shape = (nDOFg, nDOFg))
+    M = sp.sparse.csr_matrix((Mg, (Ig, Jg)), shape = (nDOFg, nDOFg))
+    S = sp.sparse.csr_matrix((Sg, (Ig, Jg)), shape = (nDOFg, nDOFg))
        
     return S, M 
 
@@ -357,7 +357,7 @@ def getPointForce(grid, nodeID, forces):
     
     RHS = np.zeros((nDOFg,))
     
-    RHS[2*nodeID] = forces
+    RHS[np.multiply(2, nodeID)] = forces
              
     return RHS
 
@@ -443,7 +443,7 @@ def get_sol(grid, coeffs):
     
     return w
 
-def plotBeam(grid, coeffs, nData, *argv):
+def plotBeam(grid, coeffs, nData, ylim, *argv):
     """
     Plots the deformed beam
 
@@ -486,9 +486,11 @@ def plotBeam(grid, coeffs, nData, *argv):
     ax.tick_params(direction= 'in', which= 'major', length= 4, bottom= True,
         top=True, right= False, left=True, width = 1)
     
-    low, high = plt.ylim()
-    bound = max(abs(low), abs(high))
-    plt.ylim(-bound, bound)
+    # low, high = plt.ylim()
+    # bound = max(abs(low), abs(high))
+    # plt.ylim(-bound, bound)
+    
+    plt.ylim(ylim[0], ylim[1])
     
     plt.text(0.875, 0.425,'undeformed', ha='center', va='center', transform=ax.transAxes, color= '#959595')
     
@@ -503,7 +505,7 @@ def plotBeam(grid, coeffs, nData, *argv):
 # ++++++++++++++++++++++++++++++++++++++++++++++
 
 
-def Newmarkmethod_step(u,u_1,u_2,h,M,S,p,beta = 1/4,gamma = 1/2):
+def Newmarkmethod_step(u, u_1, u_2, h, M, S, p, beta = 1/4, gamma = 1/2):
 
     """
     Calculates one iterate of the Newmark method
@@ -542,14 +544,36 @@ def Newmarkmethod_step(u,u_1,u_2,h,M,S,p,beta = 1/4,gamma = 1/2):
     u_1_star = u_1 + (1-gamma)*u_2*h
     
     #Creating and solving linear system to solve for u"_{j+1}
-    S = S.tocsr() #otherewise there is a formatting error maybe skip
-    M = M.tocsr() #coo format in all the other functions
+    # S = S.tocsr() #otherewise there is a formatting error maybe skip
+    # M = M.tocsr() #coo format in all the other functions
     A = M + beta*h**2*S 
-    b = p - S@u_1_star
+    b = p - S@u_star
     u_2 = sparse.linalg.spsolve(A, b)
 
     #Solving for u_{j+1}, u'_{j+1}
     u = u_star + beta*h**2*u_2
     u_1 = u_1_star + gamma*h*u_2
 
-    return u,u_1,u_2
+    return u, u_1, u_2
+
+def newmarkMethod(M, S, RHSe, initialConds, h, t0, T, verbose = False):
+    
+    nS    = int((T - t0)//h)
+    time  = np.linspace(t0, T, nS)
+    
+    u   = initialConds[0]
+    u_1 = initialConds[1]
+    u_2 = initialConds[2]
+    
+    sol = np.zeros((u.shape[0], nS))
+    
+    for idx in range(nS):
+        u, u_1, u_2 = Newmarkmethod_step(u, u_1, u_2, h, M, S, RHSe, beta = 1/4, gamma = 1/2)
+        sol[:, idx] = u
+        
+        if verbose:
+            print("Epoch: " + str(idx + 1) +"/" + str(nS))
+        
+    return sol, time
+        
+    
