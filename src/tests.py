@@ -30,8 +30,8 @@ def exact(x):
 
 S, M  = getMatrices(grid, E, I, mu, quadrature = True)
 
-# RHS   = getRHS(grid, q)
-RHS  = getPointForce(grid, [2, 10, 15], [-k, 5*k, -2.5*k])
+RHS   = getRHS(grid, q)
+# RHS  = getPointForce(grid, [2, 10, 15], [-k, 5*k, -2.5*k])
 
 
 
@@ -45,7 +45,7 @@ Me, Se, RHSe = fixBeam(M, S, RHS, (e0, eL), (d0, dL), BC)
 
 # Solve
 sol      = sparse.linalg.spsolve(Se, RHSe)
-plotBeam(grid, sol[:-2], 100, (-1.4e-5, 1.4e-5), exact)
+figura = plotBeam(grid, sol[:-2], 100, (-1.4e-5, 1.4e-5), exact)
 
 # %% Check computational cost 
 

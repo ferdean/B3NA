@@ -470,13 +470,14 @@ def plotBeam(grid, coeffs, nData, ylim, *argv):
     plt.rcParams['text.usetex'] = True
     plt.rcParams.update({'font.size' : 9})
     
-    fig, ax = plt.subplots(figsize=(5, 3), dpi = 200)
+    fig, ax = plt.subplots(figsize=(5, 3), dpi = 150)
     
     ax.plot(x_plot, beam(x_plot) * 1e3, color= '#808080', label = 'numerical')
     ax.plot([grid.min(), grid.max()], [0, 0], color= '#959595', linestyle= '--')
     
     for arg in argv: 
         ax.plot(x_plot, arg(x_plot) * 1e3, color = 'r', linestyle = '-.', label = 'exact')
+        plt.legend(loc = 'lower left')
     
     ax.axvline(x=0, color="black", linestyle="-", linewidth = 5)
     
@@ -493,10 +494,11 @@ def plotBeam(grid, coeffs, nData, ylim, *argv):
     plt.ylim(ylim[0], ylim[1])
     
     plt.text(0.875, 0.425,'undeformed', ha='center', va='center', transform=ax.transAxes, color= '#959595')
-    
-    plt.legend(loc = 'lower left')
+
     
     plt.show()
+    
+    return fig
 
 
 
