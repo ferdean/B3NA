@@ -95,8 +95,6 @@ class mesher:
         
         self.plot()
         
-        print(self.mesh.shape)
-        
         return None
     
     def chebyshevMesh(self):
@@ -107,8 +105,6 @@ class mesher:
         self.mesh = np.hstack((0, 0.5 * (self.L) * (1 + np.cos(t)), self.L))       
        
         self.plot()
-        
-        print(self.mesh.shape)
         
         return None
         
