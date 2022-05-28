@@ -473,7 +473,7 @@ def plotBeam(grid, coeffs, nData, ylim, *argv):
     fig, ax = plt.subplots(figsize=(5, 3), dpi = 150)
     
     ax.plot(x_plot, beam(x_plot) * 1e3, color= '#808080', label = 'numerical')
-    ax.plot([grid.min(), grid.max()], [0, 0], color= '#959595', linestyle= '--')
+    ax.plot([grid.min(), grid.max()], [beam(x_plot)[0]*1e3, beam(x_plot)[0]*1e3], color= '#959595', linestyle= '--')
     
     for arg in argv: 
         ax.plot(x_plot, arg(x_plot) * 1e3, color = 'r', linestyle = '-.', label = 'exact')
@@ -487,20 +487,51 @@ def plotBeam(grid, coeffs, nData, ylim, *argv):
     ax.tick_params(direction= 'in', which= 'major', length= 4, bottom= True,
         top=True, right= False, left=True, width = 1)
     
-    # low, high = plt.ylim()
-    # bound = max(abs(low), abs(high))
-    # plt.ylim(-bound, bound)
+    if ylim == -1:
+        low, high = plt.ylim()
+        bound = np.argmax((abs(low), abs(high)))
+        if bound == 1:
+            plt.ylim(beam(x_plot)[0]*2e3 - high, high)
+        else:
+            plt.ylim(low, beam(x_plot)[0]*2e3 - low)
+    else:
+        plt.ylim(ylim[0], ylim[1])
     
-    plt.ylim(ylim[0], ylim[1])
-    
-    plt.text(0.875, 0.425,'undeformed', ha='center', va='center', transform=ax.transAxes, color= '#959595')
+    # plt.text(max(grid)*(0.875), beam(x_plot)[0]*1e3 + 0.425,'undeformed', ha='center', va='center', transform=ax.transAxes, color= '#959595')
 
     
     plt.show()
     
     return fig
 
+def plotMesh(grid, nData = 100):
+    
+    x_plot = np.linspace(grid.min(), grid.max(), nData)
+    
+    yData  = np.zeros(grid.shape)
+    
+    plt.rcParams['text.usetex'] = True
+    plt.rcParams.update({'font.size' : 9})
+    
+    color = ["black"]
+    color = color * grid.size
+    color[0] = 'white'
+    
+    fig, ax = plt.subplots(figsize=(5, 3), dpi = 150)
+    
+    ax.plot([grid.min(), grid.max()], [0, 0], color= '#959595', linestyle= '-', zorder = 1)  
+    ax.scatter(grid, yData, c = color, marker = 'x', s = 10, alpha = 1, zorder = 10) 
+    ax.axvline(x=0, color="black", linestyle="-", linewidth = 5) 
+    
+    ax.set_xlabel('x-direction (-)')
+    ax.set_ylabel('deformation (mm)')
+    
+    ax.tick_params(direction= 'in', which= 'major', length= 4, bottom= True,
+        top=True, right= False, left=True, width = 1)
 
+    plt.show()
+    
+    return fig
 
 # ++++++++++++++++++++++++++++++++++++++++++++++
 # +              NEWMARK METHOD                +

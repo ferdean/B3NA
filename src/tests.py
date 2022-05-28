@@ -45,7 +45,7 @@ Me, Se, RHSe = fixBeam(M, S, RHS, (e0, eL), (d0, dL), BC)
 
 # Solve
 sol      = sparse.linalg.spsolve(Se, RHSe)
-figura = plotBeam(grid, sol[:-2], 100, (-1.4e-5, 1.4e-5), exact)
+figura = plotBeam(grid, sol[:-2], 100, -1)
 
 # %% Check computational cost 
 
