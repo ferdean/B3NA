@@ -9,6 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import fixed_quad
 from scipy import sparse
+from scipy.sparse.linalg import eigsh
 import scipy as sp
 import sympy as sm
 
@@ -568,8 +569,7 @@ def Newmarkmethod_step(u, u_1, u_2, h, M, S, p, beta = 1/4, gamma = 1/2):
         Vector with the value at time = initial time + h for the first derivative w.r.t. time.
     u_2: {array}
         Vector with the value at time = initial time + h for the second derivative w.r.t. time.
-    
-    
+
     """
 
     #calculating intermediate steps, i.e. step (a) in the transcript
@@ -609,4 +609,54 @@ def newmarkMethod(M, S, RHSe, initialConds, h, t0, T, verbose = False):
         
     return sol, time
         
+def eigenvalue_method(l,M, S, t, a_k, b_k):
+    eigval, eigvec = eigsh(M,l,S)
+    w_k = 1/np.sqrt(eigval)
+    eigenmode = ((a_k*np.cos(w_k*t)+b_k/w_k*np.sin(w_k*t))*eigvec).sum(axis = 1)
+    return eigval,eigenmode
+
+
+def eigenvalue_method_exact(grid, t, E, I, mu, L, a_k, b_k, N):
+
+    """
+    Calculates the eigenvalues and Nth eigenmode of the cantilever beam problem (simply supported beam will be added later)
+
+    Parameters
+    ----------
+    E: {function} or {scalar}
+        Young modulus [N/mm2]
+    I: {function} or {scalar}
+        Area moment of inertia.
+    mu: {function} or {scalar}
+        Density.
+    N: {integer}
+        number of frequencies calculated and number of first N eigenmodes superpositioned. (maybe introduce two seperate integers for this)
+
+    Returns
+    -------
+    omega_j: {array}
+        Vector with N natural frequencies.
+    w_x_t: {array}
+        the first Nth eigenmode evaluated on the grid x.    
     
+    """
+
+    j = np.linspace(1,N,N)
+    x_j = (j - 0.5)*np.pi
+    if N > 0:
+        x_j[0] = 1.8751
+    if N > 1:
+        x_j[1] = 4.6941
+    if N > 2:
+        x_j[2] = 7.8548
+    k_j = x_j/L
+    omega_j = E*I/mu*k_j**2
+
+    def w_j(k_j,x_j,x):
+        return 1/np.sqrt(L)*(np.cosh(k_j*x)-np.cos(k_j*x) - (np.cosh(x_j)+np.cos(x_j))/(np.sinh(x_j)+np.sin(x_j))*(np.sinh(k_j*x) - np.sin(k_j*x)))
+    
+    eigenmode = w_j(k_j[N-1],x_j[N-1],grid)
+    #w_x_t = np.copy(grid)*0
+    #for i in range(N):
+    #    w_x_t += (a_k[i]*np.cos(omega_j[i]*t) + b_k[i]/omega_j[i]*np.cos(omega_j[i]*t))*w_j(k_j[i],x_j[i],grid)
+    return omega_j,eigenmode
