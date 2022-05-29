@@ -77,7 +77,7 @@ initialConds = (u_0, u_1_0, u_2_0)
 RHSe  = np.zeros(sol.shape) 
 h     = 1e-3
 t0    = 0.0
-T     = 5.0
+T     = 10.0
 
 sol, time     = newmarkMethod(Me, Se, RHSe, initialConds, h, t0, T, verbose = False)
 
@@ -95,7 +95,10 @@ ylim   = (-2e-5, 2e-5)
 plt.rcParams['text.usetex'] = True
 plt.rcParams.update({'font.size' : 9})
 
-fig, ax = plt.subplots(figsize=(5, 3), dpi = 200)
+fig = plt.figure(figsize=(5, 3), dpi = 150)
+ax  = fig.add_subplot(111)
+
+# fig, ax = plt.subplots()
 
 def animation_frame(i): 
     ax.clear()
@@ -124,12 +127,10 @@ def animation_frame(i):
     plt.text(0.875, 0.425,'undeformed', ha='center', va='center', transform=ax.transAxes, color= '#959595')
     
     plt.legend(loc = 'lower left')
+    
+    return fig
 
-ani = animation.FuncAnimation(fig, animation_frame, 300, interval=10, blit=False)
-ani.save('temporal_2.gif', writer='imagemagick', fps= 50)
+ani = animation.FuncAnimation(fig, animation_frame, interval=10)
 
-
-
-
-
+# ani.save('temporal_2.gif', writer='imagemagick', fps= 50)
 

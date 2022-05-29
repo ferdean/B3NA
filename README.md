@@ -66,12 +66,13 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
     - [x] Implement static deformation of cantilever beam
     - [ ] Implement different BC (e. g. beam supported at both ends)
     - [x] Develop analytic solutions to design tests and validation cases
-    - [ ] Clean code, collect everything in packages/libraries and objects
+    - [x] Clean code, collect everything in packages/libraries and objects
 - [ ] Single beam, dynamic case
     - [x] Implement time-dependent solver (and repeat all points of static case)
     - [x] Test homogeneous case with a deformed initial condition
     - [x] Test non-homogeneous cases
-    - [ ] Develop visualization library + GUI supporting animations (Newmark-method)
+    - [x] Develop visualization library + GUI supporting animations (Newmark-method)
+    - [ ] Make forces and BCs interactive in the GUI
 - [ ] Eigenvalue analysis
 - [ ] Vibration of frameworks of beams
     - [ ] Implementation of a 2D solver for frameworks

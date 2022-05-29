@@ -15,6 +15,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 
 try:
     import Tkinter as tk
@@ -25,9 +26,8 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 exec(open('lib.py').read())
 
-
 ### Initialization
-def page():
+def main():
     root = tk.Tk()
     GUI  = mesher(root)
     GUI.root.mainloop()
@@ -110,7 +110,7 @@ class mesher:
         
     def plot(self):
         
-        figure   = plotMesh(self.mesh)
+        figure = plotMesh(self.mesh)
         
         chart = FigureCanvasTkAgg(figure, self.root)
         chart.get_tk_widget().grid(rowspan = 10, row = 0, column = 0) 
@@ -132,6 +132,7 @@ class mesher:
 ### Main class
 class window:
     def __init__(self, root, mesher):
+        
         self.root = root
         self.root.title('B3NA - Benouilli beam bending numerical analysis')
         self.root.geometry('1200x500')
@@ -146,18 +147,18 @@ class window:
         self.E   = 210      # [N/mm2]
         self.I   = 3.3e7    # [mm4]
         self.mu  = 20       # [kg/m]
+        
+        self.T  = 10
+        self.h  = 1E-3
                 
         self.mesh = mesher.mesh
         self.L    = mesher.L
         self.nN   = mesher.nN
         
-        self.sol = np.zeros((self.nN * 2 + 2,))
-
-        u_1_0 = np.zeros(self.sol.shape)
-        u_2_0 = np.zeros(self.sol.shape)
+        self.staticSol = np.zeros((self.nN * 2 + 2,))
+        self.u_1_0 = np.zeros(self.staticSol.shape)
+        self.u_2_0 = np.zeros(self.staticSol.shape)
         
-        self.initialConds = (self.sol, u_1_0, u_2_0)
-                     
         titleFont    = ("CMU Sans Serif", 14, "bold")
         textFont     = ("CMU Sans Serif", 10)
         
@@ -166,17 +167,17 @@ class window:
         tk.Label(self.root, text = 'Young modulus: ',     font = textFont,  bg = 'white', justify = 'right').grid(row = 1, column = 1)
         self.E_input = tk.Entry(self.root, width = 10)
         self.E_input.grid(row = 1, columnspan = 2, column = 2)
-        tk.Label(self.root, text = '[N/mm2]', font = textFont, bg = 'white').grid(row = 1, column = 4)
+        tk.Label(self.root, text = '[N/mm^2]', font = textFont, bg = 'white').grid(row = 1, column = 4)
         
         tk.Label(self.root, text = 'Inertia: ', font = textFont, bg = 'white', justify = 'right').grid(row = 2, column = 1)
         self.I_input = tk.Entry(self.root, width = 10)
         self.I_input.grid(row = 2, columnspan = 2, column = 2)
-        tk.Label(self.root, text = 'mm4', font = textFont, bg = 'white').grid(row = 2, column = 4)
+        tk.Label(self.root, text = '[mm^4]', font = textFont, bg = 'white').grid(row = 2, column = 4)
                 
         tk.Label(self.root, text = 'Density: ', font = textFont,  bg = 'white', justify = 'right').grid(row = 3, column = 1)
         self.mu_input = tk.Entry(self.root, width = 10)
         self.mu_input.grid(row = 3, columnspan = 2, column = 2)
-        tk.Label(self.root, text = 'kg/m', font = textFont, bg = 'white').grid(row = 3, column = 4)
+        tk.Label(self.root, text = '[kg/m]', font = textFont, bg = 'white').grid(row = 3, column = 4)
         
         ### Boundary Conditions
         tk.Label(self.root, text = 'Boundary conditions', font = titleFont, bg = 'white').grid(row = 4, columnspan = 4, column = 1)
@@ -194,15 +195,25 @@ class window:
         self.ML_input = tk.Entry(self.root, width = 5)
         self.ML_input.grid(row = 6, column = 4)
         
+        ### Simulation properties
+        tk.Label(self.root, text = 'Simulation properties', font = titleFont, bg = 'white').grid(row = 7, columnspan = 4, column = 1)
+        tk.Label(self.root, text = 'Tmax (s): ', font = textFont, bg = 'white', justify = 'right').grid(row = 8, column = 1)
+        tk.Label(self.root, text = 'Stepsize (-): ', font = textFont, bg = 'white', justify = 'right').grid(row = 8, column = 3)
+        
+        self.T_input = tk.Entry(self.root, width = 5)
+        self.T_input.grid(row = 8, column = 2)
+        self.h_input = tk.Entry(self.root, width = 5)
+        self.h_input.grid(row = 8, column = 4)
+        
         
         ### Action buttons        
-        tk.Label(self.root, text = 'Solver', font = titleFont, bg = 'white').grid(row = 7, columnspan = 4, column = 1)
+        tk.Label(self.root, text = 'Solver', font = titleFont, bg = 'white').grid(row = 9, columnspan = 4, column = 1)
               
         staticButton  = tk.Button(self.root, text = 'Compute static def.', font = textFont, command = self.static)
-        staticButton.grid(row = 8, columnspan = 2, column = 1)
+        staticButton.grid(row = 10, columnspan = 2, column = 1)
    
         dynamicButton = tk.Button(self.root, text = 'Simulate', font = textFont, command = self.dynamic)
-        dynamicButton.grid(row = 8, columnspan = 2, column = 3)
+        dynamicButton.grid(row = 10, columnspan = 2, column = 3)
         
         self.root.bind("<Return>", self.updateParams)
         self.plot()
@@ -213,7 +224,7 @@ class window:
         
         self.stateLabelColor = 'red'
         
-        self.stateLabelHandle = tk.Label(self.root, textvariable = self.stateLabel, font = textFont, bg = 'white', fg = self.stateLabelColor).grid(row = 10, columnspan = 4, column = 1)
+        self.stateLabelHandle = tk.Label(self.root, textvariable = self.stateLabel, font = textFont, bg = 'white', fg = self.stateLabelColor).grid(row = 12, columnspan = 4, column = 1)
 
    
     def updateParams(self, event = None):
@@ -224,12 +235,19 @@ class window:
         
         self.a  = float(self.a_input.get())
         self.b  = float(self.b_input.get())
-        self.QL  = float(self.QL_input.get())
-        self.ML  = float(self.ML_input.get())
+        self.QL = float(self.QL_input.get())
+        self.ML = float(self.ML_input.get())
         
         self.BC  = (self.a, self.b, self.QL, self.ML)
                 
         self.plot()
+        
+        return None
+    
+    def updateParamsDynamic(self, event = None):
+        
+        self.T  = float(self.T_input.get())
+        self.h  = float(self.h_input.get())
         
         return None
 
@@ -256,7 +274,7 @@ class window:
         self.Me, self.Se, self.RHSe = fixBeam(M, S, RHS, (e0, eL), (d0, dL), self.BC)
         
         # Solve
-        self.sol      = sparse.linalg.spsolve(self.Se, self.RHSe)
+        self.staticSol      = sparse.linalg.spsolve(self.Se, self.RHSe)
         
         self.stateLabel.set('Static solution available')
         
@@ -267,37 +285,79 @@ class window:
     
     def dynamic(self):
         
-        # La GUI necesita una zona para especificar las condiciones de la simulación
-        # (t0, T y h)
-        self.updateParams()
+        self.updateParamsDynamic()
         self.stateLabel.set('Computing...')
         
-        self.t0 = 0
-        self.T  = 10
-        self.h  = 1E-3
+        self.t0 = 0  
         
-        nS    = int((self.T - self.t0)//self.h)
+        self.RHSe = np.zeros(self.staticSol.shape) 
+               
+        self.initialConds = (self.staticSol, self.u_1_0, self.u_2_0)
         
-        for idx in range(nS):
-            self.sol, self.u_1, self.u_2 = Newmarkmethod_step(self.sol, self.u_1, self.u_2, self.h, self.Me, self.Se, self.RHSe, beta = 1/4, gamma = 1/2)           
-            self.plot()
-            
-            print(idx)
+        self.dynamicSol, self.time     = newmarkMethod(self.Me, self.Se, self.RHSe, 
+                                                       self.initialConds, self.h, self.t0, self.T, 
+                                                       verbose = False)
+        self.stateLabel.set('Done')
+        self.stateLabelHandle = tk.Label(self.root, textvariable = self.stateLabel, font = ("CMU Sans Serif", 10), bg = 'lightgreen', fg = 'black').grid(row = 12, columnspan = 4, column = 1)
+      
+        self.animate()
 
         return None
     
     def plot(self):
         
-        # self.sol = 
-        
-        figure   = plotBeam(self.mesh, self.sol[:-2], 50, -1)
+        figure, self.ymax = plotBeam(self.mesh, self.staticSol[:-2], 50, -1)
         
         chart = FigureCanvasTkAgg(figure, self.root)
-        chart.get_tk_widget().grid(rowspan = 10, row = 0, column = 0)
-
-
+        chart.get_tk_widget().grid(rowspan = 12, row = 0, column = 0)
         
-page()
+    def animate(self):
+        
+        self.fig = plt.Figure(figsize = (5, 3), dpi = 150)
+        
+        canvas = FigureCanvasTkAgg(self.fig, master= self.root)
+        canvas.get_tk_widget().grid(rowspan = 12, row = 0, column = 0)
+        
+        self.ax = self.fig.add_subplot(111)
+                
+        x_plot = np.linspace(0, 1, 50)
+
+        beam  = get_sol(self.mesh, self.dynamicSol[0:-2, 0])
+        line, = self.ax.plot(x_plot, beam(x_plot)*1e3, color= '#808080')
+
+        self.ax.plot([self.mesh.min(), self.mesh.max()], [beam(x_plot)[0]*1e3, beam(x_plot)[0]*1e3], color= '#959595', linestyle= '--')   
+        self.ax.axvline(x = 0, color="black", linestyle="-", linewidth = 5)
+        
+        self.ax.set_ylabel('deformation (mm)')
+        self.ax.set_xlabel('x-dimension (-)')
+        
+        self.ax.tick_params(direction= 'in', which= 'major', length= 4, bottom= True,
+            top=True, right= False, left=True, width = 1)
+            
+        self.ax.set_ylim((-self.ymax, self.ymax))
+                
+        text = self.ax.text(0.475 * self.L, 1.1 * self.ymax, 't = 0.00 s')
+        
+        def animationFrame(i):
+            beam = get_sol(self.mesh, self.dynamicSol[0:-2, i+1])    
+            line.set_ydata(beam(x_plot) * 1e3)  # update the data
+            text.set_text('t = %.2f s'%(self.time[i]))
+            return line, text,
+        
+        self.ani = animation.FuncAnimation(self.fig, animationFrame, np.arange(0, self.dynamicSol.shape[1]), interval = 30, blit=False)
+                
+        
+### TODO: Click on mesh to set up forces interactively. Some references:
+#           * https://stackoverflow.com/questions/27565939/getting-the-location-of-a-mouse-click-in-matplotlib-using-tkinter
+#           * https://stackoverflow.com/questions/25521120/store-mouse-click-event-coordinates-with-matplotlib
+#           * https://matplotlib.org/3.1.0/gallery/user_interfaces/embedding_in_tk_sgskip.html
+
+### TODO: Allow non-constant material properties
+
+### TODO: Posibility to specify force
+        
+
+main()
 
 
 
