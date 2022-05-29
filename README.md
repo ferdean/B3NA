@@ -12,6 +12,7 @@ Python implementation of the finite element method (FEM) to solve the bending eq
 * [SciPy](https://scipy.org/)
 * [Matplotlib](https://matplotlib.org/)
 * [Seaborn](https://seaborn.pydata.org/)
+* [Tkinter](https://docs.python.org/3/library/tkinter.html)
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
