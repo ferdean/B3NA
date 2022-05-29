@@ -609,14 +609,19 @@ def newmarkMethod(M, S, RHSe, initialConds, h, t0, T, verbose = False):
         
     return sol, time
         
-def eigenvalue_method(l,M, S, t, a_k, b_k):
-    eigval, eigvec = eigsh(M,l,S)
-    w_k = 1/np.sqrt(eigval)
-    eigenmode = ((a_k*np.cos(w_k*t)+b_k/w_k*np.sin(w_k*t))*eigvec).sum(axis = 1)
-    return eigval,eigenmode
+def eigenvalue_method(l,M, S):
+    eigval, eigenmode = eigsh(M,l,S)
+    nat_freq = 1/np.sqrt(eigval)
 
 
-def eigenvalue_method_exact(grid, t, E, I, mu, L, a_k, b_k, N):
+    idx = eigval.argsort()[::-1]   
+    eigenval = eigval[idx]
+    eigenmode = eigenmode[:,idx]
+    #eigenmode = ((a_k*np.cos(w_k*t)+b_k/w_k*np.sin(w_k*t))*eigvec).sum(axis = 1)
+    return nat_freq,eigenmode
+
+
+def eigenvalue_method_exact(grid, E, I, mu, L, N):
 
     """
     Calculates the eigenvalues and Nth eigenmode of the cantilever beam problem (simply supported beam will be added later)

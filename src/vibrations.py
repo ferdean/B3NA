@@ -1,6 +1,5 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.sparse.linalg import eigsh
 
 from lib import *
 
@@ -45,15 +44,10 @@ Me, Se, RHSe = fixBeam(M, S, np.zeros(S.shape[0]), (e0, eL), (d0, dL), BC)
 N = 2*grid.shape[0]
 K = Me.shape[0] - N
 
-a_k = np.ones(N-K)
-b_k = np.ones(N-K)
-#a_k[0] = 1
-#b_k[0] = 1
-t = 1
-
-nat_freq, eigenmode = eigenvalue_method_exact(grid, t, E, I, mu, L, a_k, b_k, 1)
+nat_freq, eigenmode = eigenvalue_method_exact(grid, E, I, mu, L, 1)
 plt.plot(grid,eigenmode)
 plt.show()
-#eigenval, eigenmode = eigenvalue_method(N-K,Me, Se, t, a_k, b_k)
-#exact_eigenval = exact_eigenvalue(E,I,mu,L,100)
 
+eigenval, eigenmode = eigenvalue_method(N-K,Me, Se)
+
+plotBeam(grid, eigenmode[:-2,0], 100, -1)
