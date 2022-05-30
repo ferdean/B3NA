@@ -12,6 +12,7 @@ Python implementation of the finite element method (FEM) to solve the bending eq
 * [SciPy](https://scipy.org/)
 * [Matplotlib](https://matplotlib.org/)
 * [Seaborn](https://seaborn.pydata.org/)
+* [Tkinter](https://docs.python.org/3/library/tkinter.html)
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
@@ -45,11 +46,15 @@ V. Yelnyk - volodymyr.yelnyk@gmail.com
 0. Read the documentation and be aware of the [license terms](https://github.com/ferdean/beam-num-analysis/blob/main/LICENSE)
 1. Git-clone this repo and change directory 
     
-    <pre>git clone https://github.com/ferdean/beam-num-analysis</pre>
-    <pre>cd beam-num-analysis</pre>
+    <pre>git clone https://github.com/ferdean/B3NA</pre>
+    <pre>cd B3NA</pre>
     
 2. Install modules using pip.
    <pre>pip install -r requirements.txt</pre>
+   
+3. Run
+   <pre>cd src</pre>
+   <pre>python B3NA.py</pre>
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
