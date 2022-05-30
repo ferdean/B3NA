@@ -44,10 +44,13 @@ Me, Se, RHSe = fixBeam(M, S, np.zeros(S.shape[0]), (e0, eL), (d0, dL), BC)
 N = 2*grid.shape[0]
 K = Me.shape[0] - N
 
-nat_freq, eigenmode = eigenvalue_method_exact(grid, E, I, mu, L, 1)
+nat_freq, eigenmode = eigenvalue_method_exact(grid, E, I, mu, L, 58)
 plt.plot(grid,eigenmode)
 plt.show()
 
 eigenval, eigenmode = eigenvalue_method(N-K,Me, Se)
 
 plotBeam(grid, eigenmode[:-2,0], 100, -1)
+
+print(nat_freq)
+print(eigenval)

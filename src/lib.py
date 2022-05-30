@@ -620,7 +620,6 @@ def eigenvalue_method(l,M, S):
     #eigenmode = ((a_k*np.cos(w_k*t)+b_k/w_k*np.sin(w_k*t))*eigvec).sum(axis = 1)
     return nat_freq,eigenmode
 
-
 def eigenvalue_method_exact(grid, E, I, mu, L, N):
 
     """
@@ -655,7 +654,7 @@ def eigenvalue_method_exact(grid, E, I, mu, L, N):
     if N > 2:
         x_j[2] = 7.8548
     k_j = x_j/L
-    omega_j = E*I/mu*k_j**2
+    omega_j = np.sqrt(E*I/mu)*k_j**2
 
     def w_j(k_j,x_j,x):
         return 1/np.sqrt(L)*(np.cosh(k_j*x)-np.cos(k_j*x) - (np.cosh(x_j)+np.cos(x_j))/(np.sinh(x_j)+np.sin(x_j))*(np.sinh(k_j*x) - np.sin(k_j*x)))
