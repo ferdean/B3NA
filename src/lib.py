@@ -494,8 +494,8 @@ def plotBeam(grid, coeffs, nData, ylim, *argv):
             plt.ylim(beam(x_plot)[0]*2e3 - high * 1.25, high * 1.25)
             bound = high * 1.25
         else:
-            plt.ylim(low * 0.75, beam(x_plot)[0]*2e3 - low * 0.75)
-            bound = beam(x_plot)[0]*2e3 - low * 0.75
+            plt.ylim(low * 1.25, beam(x_plot)[0]*2e3 - low * 1.25)
+            bound = beam(x_plot)[0]*2e3 - low * 1.25
     else:
         plt.ylim(ylim[0], ylim[1])
         bound = ylim[1]

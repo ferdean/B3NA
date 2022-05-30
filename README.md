@@ -70,7 +70,7 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
 - [ ] Single beam, dynamic case
     - [x] Implement time-dependent solver (and repeat all points of static case)
     - [x] Test homogeneous case with a deformed initial condition
-    - [x] Test non-homogeneous cases
+    - [ ] Implement non-homogeneous cases (forced vibration)
     - [x] Develop visualization library + GUI supporting animations (Newmark-method)
     - [ ] Make forces and BCs interactive in the GUI
 - [ ] Eigenvalue analysis

@@ -134,3 +134,75 @@ ani = animation.FuncAnimation(fig, animation_frame, interval=10)
 
 # ani.save('temporal_2.gif', writer='imagemagick', fps= 50)
 
+# %% Save clicks
+
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+
+try:
+    import Tkinter as tk
+except:
+    import tkinter as tk
+
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
+### Figure object definition
+fig = plt.Figure(figsize = (5, 3), dpi = 150)
+ax     = fig.add_subplot(111)
+
+### Tkinter window
+root   = Tk.Tk()
+canvas = FigureCanvasTkAgg(fig, master=root)
+canvas.get_tk_widget().grid(column=0,row=1)
+
+### Function definition
+coords = []
+
+def on_click(event):
+    if event.inaxes is not None:
+        # print(event.xdata, event.ydata)
+        global coords
+        # coords.append((event.xdata, event.ydata))
+        
+        def find_nearest(array, value):
+            array = np.asarray(array)
+            idx = (np.abs(array - value)).argmin()
+            return array[idx]
+        
+        x = find_nearest(grid, event.xdata)
+        print(x)
+        
+        plt.clf()
+        ax.scatter(x, np.sin(x), color = 'red', s= 5)
+        
+    else:
+        print('Clicked ouside axes bounds but inside plot window')
+    
+
+### Plot definition
+
+x_plot = np.linspace(0, 2*np.pi, 500)
+y_plot = np.sin(x_plot) # Toy data
+
+line, = ax.plot(x_plot, y_plot, color= '#808080')
+
+ax.plot(x_plot, np.zeros(x_plot.shape), color= '#959595', linestyle = '--')
+ax.axvline(x = 0, color="black", linestyle="-", linewidth = 5)
+
+ax.set_ylabel('y-dimension (-)')
+ax.set_xlabel('x-dimension (-)')
+
+ax.tick_params(direction= 'in', which= 'major', length= 4, bottom= True,
+    top=True, right= False, left=True, width = 1)
+
+clicks = fig.canvas.mpl_connect('button_press_event', on_click)
+plt.show()
+
+
+### Some postprocess
+grid = np.linspace(0, 6, 5)
+
+### Main loop
+root.mainloop()
+

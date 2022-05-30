@@ -24,7 +24,10 @@ except:
 
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
-exec(open('lib.py').read())
+try:
+    exec(open('lib.py').read())
+except:
+    import lib
 
 ### Initialization
 def main():
@@ -257,7 +260,7 @@ class window:
         self.stateLabel.set('Computing...')
         
         def q(x):
-            return 1000 * x
+            return - 1000 * x
 
         S, M  = getMatrices(self.mesh, self.E, self.I, self.mu, quadrature = True)
         
@@ -344,7 +347,7 @@ class window:
             text.set_text('t = %.2f s'%(self.time[i]))
             return line, text,
         
-        self.ani = animation.FuncAnimation(self.fig, animationFrame, np.arange(0, self.dynamicSol.shape[1]), interval = 30, blit=False)
+        self.ani = animation.FuncAnimation(self.fig, animationFrame, np.arange(0, self.dynamicSol.shape[1]), interval = 200, blit=False)
                 
         
 ### TODO: Click on mesh to set up forces interactively. Some references:
