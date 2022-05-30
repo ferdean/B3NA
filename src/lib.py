@@ -608,17 +608,16 @@ def newmarkMethod(M, S, RHSe, initialConds, h, t0, T, verbose = False):
             print("Epoch: " + str(idx + 1) +"/" + str(nS))
         
     return sol, time
-        
+
 def eigenvalue_method(l,M, S):
-    eigval, eigenmode = eigsh(M,l,S)
-    nat_freq = 1/np.sqrt(eigval)
-
-
+    eigval, eigfunc = eigsh(M,l,S)
+    
     idx = eigval.argsort()[::-1]   
-    eigenval = eigval[idx]
-    eigenmode = eigenmode[:,idx]
+    eigval = eigval[idx]
+    eigfunc = eigfunc[:,idx]
     #eigenmode = ((a_k*np.cos(w_k*t)+b_k/w_k*np.sin(w_k*t))*eigvec).sum(axis = 1)
-    return nat_freq,eigenmode
+    eigfreq = 1/np.sqrt(eigval)
+    return eigfreq,eigfunc
 
 def eigenvalue_method_exact(grid, E, I, mu, L, N):
 
@@ -654,13 +653,13 @@ def eigenvalue_method_exact(grid, E, I, mu, L, N):
     if N > 2:
         x_j[2] = 7.8548
     k_j = x_j/L
-    omega_j = np.sqrt(E*I/mu)*k_j**2
+    eigfreq = np.sqrt(E*I/mu)*k_j**2
 
     def w_j(k_j,x_j,x):
         return 1/np.sqrt(L)*(np.cosh(k_j*x)-np.cos(k_j*x) - (np.cosh(x_j)+np.cos(x_j))/(np.sinh(x_j)+np.sin(x_j))*(np.sinh(k_j*x) - np.sin(k_j*x)))
     
-    eigenmode = w_j(k_j[N-1],x_j[N-1],grid)
+    eigfunc = w_j(k_j[N-1],x_j[N-1],grid)
     #w_x_t = np.copy(grid)*0
     #for i in range(N):
     #    w_x_t += (a_k[i]*np.cos(omega_j[i]*t) + b_k[i]/omega_j[i]*np.cos(omega_j[i]*t))*w_j(k_j[i],x_j[i],grid)
-    return omega_j,eigenmode
+    return eigfreq,eigfunc

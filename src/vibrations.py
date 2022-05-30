@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from torch import eig
 
 from lib import *
 
@@ -10,12 +11,12 @@ from lib import *
 # %% Problem characteristics
 
 # Material properties (constant)
-E  = 210      # [N/mm2]
-I  = 3.3e7    # [mm4]
-k  = 1e3      # [N]
-L  = 1        # [m]
-nN = 30       # [-]
-mu = 0.1      # [kg/m]
+E  = 10     # [N/mm2]
+I  = 1       # [mm4]
+k  = 1       # [N]
+L  = 1       # [m]
+nN = 30      # [-]
+mu = 1       # [kg/m]
 
 # Material properties (variable)
 # def E(x): return 210 * (x + 1)
@@ -44,13 +45,18 @@ Me, Se, RHSe = fixBeam(M, S, np.zeros(S.shape[0]), (e0, eL), (d0, dL), BC)
 N = 2*grid.shape[0]
 K = Me.shape[0] - N
 
-nat_freq, eigenmode = eigenvalue_method_exact(grid, E, I, mu, L, 58)
-plt.plot(grid,eigenmode)
+eigfreq_exact, eigfunc_exact = eigenvalue_method_exact(grid, E, I, mu, L, 8)
+plt.figure()
+plt.plot(grid,eigfunc_exact)
 plt.show()
 
-eigenval, eigenmode = eigenvalue_method(N-K,Me, Se)
+eigfreq_numerical, eigvec = eigenvalue_method(N-K,Me, Se)
 
-plotBeam(grid, eigenmode[:-2,0], 100, -1)
+plotBeam(grid, eigvec[:-2,7], 100, -1)
 
-print(nat_freq)
-print(eigenval)
+plt.figure()
+plt.plot(eigfreq_exact[:5],"*",label = "exact")
+plt.plot(eigfreq_numerical[:5],"o",label = "numerical")
+plt.xlabel("ith eigenfrequency")
+plt.legend(loc = "upper right")
+plt.show()
