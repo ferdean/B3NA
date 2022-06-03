@@ -74,7 +74,12 @@ class Structure:
         plt.axis('scaled')
         plt.show()
     def assemble_matrices(self):
-        #loop through nodes and get constraints and forces 
+        #loop through nodes and get constraints and forces
+        n_beams = len(self.beams)
+        C = np.zeros((n_beams,0))
+        for node in self.nodes:
+            print(C)
+        return 0
 
 class Node:
     def __init__(self,index,coord,status):
@@ -96,4 +101,5 @@ class Beam:
 filename = "frame1.txt"
 
 x = Structure(filename)
-x.plot()
+#x.plot()
+x.assemble_matrices()
