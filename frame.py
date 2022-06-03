@@ -7,6 +7,9 @@ class Structure:
         # copy all information about structure from a text file to an object 
         self.nodes = []
         self.beams = []
+        self.C_matric = None # constraints 
+        self.S_matrix = None 
+        self.M_matrix = None # to be done 
         mode = 0
         f = open(filename, "r") # read off nodes and beams from the file and store them in lists 
 
@@ -70,7 +73,8 @@ class Structure:
        
         plt.axis('scaled')
         plt.show()
-
+    def assemble_matrices(self):
+        #loop through nodes and get constraints and forces 
 
 class Node:
     def __init__(self,index,coord,status):
