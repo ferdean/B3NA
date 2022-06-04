@@ -122,7 +122,6 @@ def get_phi(grid, i, derivative = 0):
     
     return phi
 
-
 def getGaussParams():
     nodes = (np.sort(np.array([(3/7 - (2/7)*(6/5)**0.5)**0.5, -(3/7 - (2/7)*(6/5)**0.5)**0.5 , 
                               (3/7 + (2/7)*(6/5)**0.5)**0.5, -(3/7 + (2/7)*(6/5)**0.5)**0.5])) +1) /2
@@ -609,8 +608,8 @@ def newmarkMethod(M, S, RHSe, initialConds, h, t0, T, verbose = False):
         
     return sol, time
 
-def eigenvalue_method(l,M,S):
-    eigval, eigvec = eigsh(M,l,S)
+def eigenvalue_method(Me,Se):
+    eigval, eigvec = eigsh(Me,M = Se)
     
     idx = eigval.argsort()[::-1]   
     eigval = eigval[idx]
@@ -639,7 +638,7 @@ def eigenvalue_method_exact(grid, E, I, mu, L, N):
     omega_j: {array}
         Vector with N natural frequencies.
     w_x_t: {array}
-        the first Nth eigenmode evaluated on the grid x.    
+        the first N eigenmodes evaluated on the grid.    
     
     """
 
@@ -657,27 +656,31 @@ def eigenvalue_method_exact(grid, E, I, mu, L, N):
     def w_j(k_j,x_j,x):
         return 1/np.sqrt(L)*(np.cosh(k_j*x)-np.cos(k_j*x) - (np.cosh(x_j)+np.cos(x_j))/(np.sinh(x_j)+np.sin(x_j))*(np.sinh(k_j*x) - np.sin(k_j*x)))
     
-    eigfunc = w_j(k_j[N-1],x_j[N-1],grid)
-    #w_x_t = np.copy(grid)*0
-    #for i in range(N):
-    #    w_x_t += (a_k[i]*np.cos(omega_j[i]*t) + b_k[i]/omega_j[i]*np.cos(omega_j[i]*t))*w_j(k_j[i],x_j[i],grid)
-    return eigfreq,eigfunc
+    eigfuncs = np.zeros((grid.shape[0],N))
+    for i in range(N):
+        eigfuncs[:,i] = w_j(k_j[i],x_j[i],grid)
 
-def eigenmodes_and_superpositions_animation(t_0,t_f,Nt,l,M,S,modes):
+    return eigfreq,eigfuncs
+
+def eigenvalue_method_dynamic(t_0,t_f,Nt,M,S,modes):
     a_k = np.copy(modes)
     b_k = np.copy(modes)
 
-    w_k,eigvec = eigenvalue_method(l,M,S)
+    w_k,eigvec = eigenvalue_method(M,S)
     
     dt = (t_f - t_0)/Nt
 
-    superposition_t = np.zeros(M.shape[0],Nt)
+    superposition_t = np.zeros((M.shape[0],Nt))
+
+    print(a_k.shape)
+    print(w_k.shape)
+    print(eigvec.shape)
     
     def superposition(t):
         return ((a_k*np.cos(w_k*t)+b_k/w_k*np.sin(w_k*t))*eigvec).sum(axis = 1)
 
-    for ind,i in range(Nt):
-        superposition_t[ind] = superposition(t_0+i*dt)
+    for i in range(Nt):
+        superposition_t[:,i] = superposition(t_0+i*dt)
     
     return superposition_t
 

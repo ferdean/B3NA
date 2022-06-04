@@ -1,7 +1,5 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from torch import eig
-
 from lib import *
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -11,29 +9,20 @@ from lib import *
 # %% Problem characteristics
 
 # Material properties (constant)
-E  = 10     # [N/mm2]
+E  = 1     # [N/mm2]
 I  = 1       # [mm4]
 k  = 1       # [N]
 L  = 1       # [m]
 nN = 30      # [-]
 mu = 1       # [kg/m]
 
-# Material properties (variable)
-# def E(x): return 210 * (x + 1)
-# def I(x): return 3.3e7
-# def mu(x): return 0.1 * (1 + x/10)
-
 # Mesh
 grid = np.linspace(0, L, nN)
 
-#++++++++++++++++++++++++++++++++++++++++++++
-#+   Cantilever beam vibrational analysis   +
-#++++++++++++++++++++++++++++++++++++++++++++
-
 # Boundary
 BC   = (0, 0, 0, 0)
-# %% Solver
 
+#get matrices
 S, M  = getMatrices(grid, E, I, mu, quadrature = True)
 
 e0 = np.zeros(nN*2);    e0[0]  = 1.0
@@ -45,24 +34,38 @@ dL = np.zeros(nN*2);    dL[-2] = 1.0
 # Apply BCs
 Me, Se, RHSe = fixBeam(M, S, np.zeros(S.shape[0]), (e0, eL), (d0, dL), BC)
 
-# Solve
-N = 2*grid.shape[0]
-K = Me.shape[0] - N
+# Solving generalized eigenvalue problem
+from scipy.sparse.linalg import eigsh
 
-# Exact eigenfreq and eigenfunctions
-eigfreq_exact, eigfunc_exact = eigenvalue_method_exact(grid, E, I, mu, L, 1)
+eigfreq_num, eigvec = eigenvalue_method(Me,Se)
+eigfreq_exact, eigfunc = eigenvalue_method_exact(grid, E, I, mu, L, 10)
+
+print(eigfunc[:,0])
+
+plotBeam(grid, eigvec[:-2,2], 100, -1)
 plt.figure()
-plt.plot(grid,eigfunc_exact)
+plt.plot(grid,eigfunc[:,2])
 plt.show()
 
-#Numerical eigenfreq and eigenfunctions
-eigfreq_numerical, eigvec_numerical = eigenvalue_method(N-K,Me, Se)
-
-plotBeam(grid, eigvec_numerical[:-2,0], 100, -1)
 
 plt.figure()
 plt.plot(eigfreq_exact[:5],"*",label = "exact")
-plt.plot(eigfreq_numerical[:5],"o",label = "numerical")
+plt.plot(eigfreq_num[:5],"o",label = "numerical")
 plt.xlabel("ith eigenfrequency")
 plt.legend(loc = "upper right")
 plt.show()
+
+modes = np.zeros(6)
+modes[0] = 1e-3
+modes[1] = 1e-3
+t_0 = 20
+t_f = 50
+Nt = 100
+
+superposition_dynamic = eigenvalue_method_dynamic(t_0,t_f,Nt,Me,Se,modes)
+
+print(superposition_dynamic.shape)
+
+#still need to do the animation for now I have subplots at fixed timestamps :))
+for i in range(4):
+    plotBeam(grid,superposition_dynamic[:-2,i*25],100,-1)
