@@ -34,14 +34,13 @@ dL = np.zeros(nN*2);    dL[-2] = 1.0
 # Apply BCs
 Me, Se, RHSe = fixBeam(M, S, np.zeros(S.shape[0]), (e0, eL), (d0, dL), BC)
 
-# Solving generalized eigenvalue problem
+# Solving generalized eigenvalue problem exactly and numerically
 from scipy.sparse.linalg import eigsh
 
 eigfreq_num, eigvec = eigenvalue_method(Me,Se)
 eigfreq_exact, eigfunc = eigenvalue_method_exact(grid, E, I, mu, L, 10)
 
-print(eigfunc[:,0])
-
+#comparing eigenfunction of exact problem with the eigenvector of discretized problem
 plotBeam(grid, eigvec[:-2,2], 100, -1)
 plt.figure()
 plt.plot(grid,eigfunc[:,2])
@@ -55,11 +54,12 @@ plt.xlabel("ith eigenfrequency")
 plt.legend(loc = "upper right")
 plt.show()
 
+#Simulating superpositions of eigenvectors
 modes = np.zeros(6)
-modes[0] = 1e-3
-modes[1] = 1e-3
-t_0 = 20
-t_f = 50
+modes[4] = 1e-3 #activated modes
+modes[5] = 1e-3 #activated modes
+t_0 = 0
+t_f = 100
 Nt = 100
 
 superposition_dynamic = eigenvalue_method_dynamic(t_0,t_f,Nt,Me,Se,modes)

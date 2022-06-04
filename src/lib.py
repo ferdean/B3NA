@@ -608,6 +608,10 @@ def newmarkMethod(M, S, RHSe, initialConds, h, t0, T, verbose = False):
         
     return sol, time
 
+# +++++++++++++++++++++++++++
+# +    EIGENVALUE METHOD    +
+# +++++++++++++++++++++++++++
+
 def eigenvalue_method(Me,Se):
     eigval, eigvec = eigsh(Me,M = Se)
     
