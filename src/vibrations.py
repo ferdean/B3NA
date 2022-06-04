@@ -4,9 +4,9 @@ from torch import eig
 
 from lib import *
 
-# +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-# +     Static solution with eneral material properties     +
-# +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# +     Eigenmodes/superposition simulation with general material properties     +
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 # %% Problem characteristics
 
@@ -25,6 +25,10 @@ mu = 1       # [kg/m]
 
 # Mesh
 grid = np.linspace(0, L, nN)
+
+#++++++++++++++++++++++++++++++++++++++++++++
+#+   Cantilever beam vibrational analysis   +
+#++++++++++++++++++++++++++++++++++++++++++++
 
 # Boundary
 BC   = (0, 0, 0, 0)
@@ -45,14 +49,16 @@ Me, Se, RHSe = fixBeam(M, S, np.zeros(S.shape[0]), (e0, eL), (d0, dL), BC)
 N = 2*grid.shape[0]
 K = Me.shape[0] - N
 
-eigfreq_exact, eigfunc_exact = eigenvalue_method_exact(grid, E, I, mu, L, 8)
+# Exact eigenfreq and eigenfunctions
+eigfreq_exact, eigfunc_exact = eigenvalue_method_exact(grid, E, I, mu, L, 1)
 plt.figure()
 plt.plot(grid,eigfunc_exact)
 plt.show()
 
-eigfreq_numerical, eigvec = eigenvalue_method(N-K,Me, Se)
+#Numerical eigenfreq and eigenfunctions
+eigfreq_numerical, eigvec_numerical = eigenvalue_method(N-K,Me, Se)
 
-plotBeam(grid, eigvec[:-2,7], 100, -1)
+plotBeam(grid, eigvec_numerical[:-2,0], 100, -1)
 
 plt.figure()
 plt.plot(eigfreq_exact[:5],"*",label = "exact")

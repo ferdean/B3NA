@@ -609,15 +609,14 @@ def newmarkMethod(M, S, RHSe, initialConds, h, t0, T, verbose = False):
         
     return sol, time
 
-def eigenvalue_method(l,M, S):
-    eigval, eigfunc = eigsh(M,l,S)
+def eigenvalue_method(l,M,S):
+    eigval, eigvec = eigsh(M,l,S)
     
     idx = eigval.argsort()[::-1]   
     eigval = eigval[idx]
-    eigfunc = eigfunc[:,idx]
-    #eigenmode = ((a_k*np.cos(w_k*t)+b_k/w_k*np.sin(w_k*t))*eigvec).sum(axis = 1)
+    eigvec = eigvec[:,idx]
     eigfreq = 1/np.sqrt(eigval)
-    return eigfreq,eigfunc
+    return eigfreq,eigvec
 
 def eigenvalue_method_exact(grid, E, I, mu, L, N):
 
@@ -663,3 +662,23 @@ def eigenvalue_method_exact(grid, E, I, mu, L, N):
     #for i in range(N):
     #    w_x_t += (a_k[i]*np.cos(omega_j[i]*t) + b_k[i]/omega_j[i]*np.cos(omega_j[i]*t))*w_j(k_j[i],x_j[i],grid)
     return eigfreq,eigfunc
+
+def eigenmodes_and_superpositions_animation(t_0,t_f,Nt,l,M,S,modes):
+    a_k = np.copy(modes)
+    b_k = np.copy(modes)
+
+    w_k,eigvec = eigenvalue_method(l,M,S)
+    
+    dt = (t_f - t_0)/Nt
+
+    superposition_t = np.zeros(M.shape[0],Nt)
+    
+    def superposition(t):
+        return ((a_k*np.cos(w_k*t)+b_k/w_k*np.sin(w_k*t))*eigvec).sum(axis = 1)
+
+    for ind,i in range(Nt):
+        superposition_t[ind] = superposition(t_0+i*dt)
+    
+    return superposition_t
+
+
