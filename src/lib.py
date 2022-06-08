@@ -675,10 +675,6 @@ def eigenvalue_method_dynamic(t_0,t_f,Nt,M,S,modes):
     dt = (t_f - t_0)/Nt
 
     superposition_t = np.zeros((M.shape[0],Nt))
-
-    print(a_k.shape)
-    print(w_k.shape)
-    print(eigvec.shape)
     
     def superposition(t):
         return ((a_k*np.cos(w_k*t)+b_k/w_k*np.sin(w_k*t))*eigvec).sum(axis = 1)
