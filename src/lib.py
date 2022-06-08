@@ -9,6 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import fixed_quad
 from scipy import sparse
+from scipy.sparse.linalg import eigsh
 import scipy as sp
 import sympy as sm
 
@@ -120,7 +121,6 @@ def get_phi(grid, i, derivative = 0):
         return funct_odd, funct_even
     
     return phi
-
 
 def getGaussParams():
     nodes = (np.sort(np.array([(3/7 - (2/7)*(6/5)**0.5)**0.5, -(3/7 - (2/7)*(6/5)**0.5)**0.5 , 
@@ -568,8 +568,7 @@ def Newmarkmethod_step(u, u_1, u_2, h, M, S, p, beta = 1/4, gamma = 1/2):
         Vector with the value at time = initial time + h for the first derivative w.r.t. time.
     u_2: {array}
         Vector with the value at time = initial time + h for the second derivative w.r.t. time.
-    
-    
+
     """
 
     #calculating intermediate steps, i.e. step (a) in the transcript
@@ -608,5 +607,85 @@ def newmarkMethod(M, S, RHSe, initialConds, h, t0, T, verbose = False):
             print("Epoch: " + str(idx + 1) +"/" + str(nS))
         
     return sol, time
-        
+
+# +++++++++++++++++++++++++++
+# +    EIGENVALUE METHOD    +
+# +++++++++++++++++++++++++++
+
+def eigenvalue_method(Me,Se):
+    eigval, eigvec = eigsh(Me,M = Se)
     
+    idx = eigval.argsort()[::-1]   
+    eigval = eigval[idx]
+    eigvec = eigvec[:,idx]
+    eigfreq = 1/np.sqrt(eigval)
+    return eigfreq,eigvec
+
+def eigenvalue_method_exact(grid, E, I, mu, L, N):
+
+    """
+    Calculates the eigenvalues and Nth eigenmode of the cantilever beam problem (simply supported beam will be added later)
+
+    Parameters
+    ----------
+    E: {function} or {scalar}
+        Young modulus [N/mm2]
+    I: {function} or {scalar}
+        Area moment of inertia.
+    mu: {function} or {scalar}
+        Density.
+    N: {integer}
+        number of frequencies calculated and number of first N eigenmodes superpositioned. (maybe introduce two seperate integers for this)
+
+    Returns
+    -------
+    omega_j: {array}
+        Vector with N natural frequencies.
+    w_x_t: {array}
+        the first N eigenmodes evaluated on the grid.    
+    
+    """
+
+    j = np.linspace(1,N,N)
+    x_j = (j - 0.5)*np.pi
+    if N > 0:
+        x_j[0] = 1.8751
+    if N > 1:
+        x_j[1] = 4.6941
+    if N > 2:
+        x_j[2] = 7.8548
+    k_j = x_j/L
+    eigfreq = np.sqrt(E*I/mu)*k_j**2
+
+    def w_j(k_j,x_j,x):
+        return 1/np.sqrt(L)*(np.cosh(k_j*x)-np.cos(k_j*x) - (np.cosh(x_j)+np.cos(x_j))/(np.sinh(x_j)+np.sin(x_j))*(np.sinh(k_j*x) - np.sin(k_j*x)))
+    
+    eigfuncs = np.zeros((grid.shape[0],N))
+    for i in range(N):
+        eigfuncs[:,i] = w_j(k_j[i],x_j[i],grid)
+
+    return eigfreq,eigfuncs
+
+def eigenvalue_method_dynamic(t_0,t_f,Nt,M,S,modes):
+    a_k = np.copy(modes)
+    b_k = np.copy(modes)
+
+    w_k,eigvec = eigenvalue_method(M,S)
+    
+    dt = (t_f - t_0)/Nt
+
+    superposition_t = np.zeros((M.shape[0],Nt))
+
+    print(a_k.shape)
+    print(w_k.shape)
+    print(eigvec.shape)
+    
+    def superposition(t):
+        return ((a_k*np.cos(w_k*t)+b_k/w_k*np.sin(w_k*t))*eigvec).sum(axis = 1)
+
+    for i in range(Nt):
+        superposition_t[:,i] = superposition(t_0+i*dt)
+    
+    return superposition_t
+
+
