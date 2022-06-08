@@ -77,7 +77,7 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
     - [x] Test homogeneous case with a deformed initial condition
     - [ ] Implement non-homogeneous cases (forced vibration)
     - [x] Develop visualization library + GUI supporting animations (Newmark-method)
-    - [ ] Make forces and BCs interactive in the GUI
+    - [ ] (optional) Make forces and BCs interactive in the GUI
 - [x] Eigenvalue analysis
 - [ ] Vibration of frameworks of beams
     - [ ] Implementation of a 2D solver for frameworks
