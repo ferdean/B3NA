@@ -1,3 +1,4 @@
+# %%
 import numpy as np
 import matplotlib.pyplot as plt
 from lib import *
@@ -64,8 +65,79 @@ Nt = 100
 
 superposition_dynamic = eigenvalue_method_dynamic(t_0,t_f,Nt,Me,Se,modes)
 
-print(superposition_dynamic.shape)
-
 #still need to do the animation for now I have subplots at fixed timestamps :))
-for i in range(4):
-    plotBeam(grid,superposition_dynamic[:-2,i*25],100,-1)
+#for i in range(4):
+#    plotBeam(grid,superposition_dynamic[:-2,i*25],100,-1)
+
+# %% Generate animation
+
+import matplotlib.animation as animation
+
+sol = superposition_dynamic
+
+nData  = 100
+
+nN     = len(grid)
+x_plot = np.linspace(grid.min(), grid.max(), nData) 
+ylim   = (-2e-5, 2e-5)
+
+
+plt.rcParams['text.usetex'] = True
+plt.rcParams.update({'font.size' : 9})
+
+fig = plt.figure(figsize=(5, 3), dpi = 150)
+ax  = fig.add_subplot(111)
+
+# fig, ax = plt.subplots()
+
+# %% Generate animation
+
+import matplotlib.animation as animation
+
+nData  = 100
+
+nN     = len(grid)
+x_plot = np.linspace(grid.min(), grid.max(), nData) 
+ylim   = (-2e-5, 2e-5)
+
+
+plt.rcParams['text.usetex'] = True
+plt.rcParams.update({'font.size' : 9})
+
+fig = plt.figure(figsize=(5, 3), dpi = 150)
+ax  = fig.add_subplot(111)
+
+# fig, ax = plt.subplots()
+
+def animation_frame(i): 
+    ax.clear()
+    beam = get_sol(grid, sol[0:-2, i])
+    
+    ax.plot(x_plot, beam(x_plot) * 1e3, color= '#808080', label = 'numerical')
+    ax.plot([grid.min(), grid.max()], [0, 0], color= '#959595', linestyle= '--')
+    
+    
+    ax.axvline(x=0, color="black", linestyle="-", linewidth = 5)
+    
+    ax.set_xlabel('x-direction (-)')
+    ax.set_ylabel('deformation (mm)')
+    
+    ax.tick_params(direction= 'in', which= 'major', length= 4, bottom= True,
+        top=True, right= False, left=True, width = 1)
+    
+    #low, high = plt.ylim()
+    #bound = max(abs(low), abs(high))
+    plt.ylim(-0.1, 0.1)
+    
+    #plt.ylim(ylim[0], ylim[1])
+    
+    #plt.title('t = %.2f s'%(time[i]))
+    
+    #plt.text(0.875, 0.425,'undeformed', ha='center', va='center', transform=ax.transAxes, color= '#959595')
+    
+    plt.legend(loc = 'lower left')
+    
+    return fig
+
+ani = animation.FuncAnimation(fig, animation_frame, np.arange(0, sol.shape[1]), interval = 200)
+ani.save('temporal_2.gif', writer='imagemagick', fps= 50)
