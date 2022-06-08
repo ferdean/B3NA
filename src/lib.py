@@ -665,7 +665,7 @@ def newmarkMethod(M, S, RHSe, initialConds, h, t0, T, verbose = False):
             print("Epoch: " + str(idx + 1) +"/" + str(nS))
         
     return sol, time
-<<<<<<< HEAD
+        
 
 # +++++++++++++++++++++++++++
 # +    EIGENVALUE METHOD    +
@@ -742,10 +742,3 @@ def eigenvalue_method_dynamic(t_0,t_f,Nt,M,S,modes):
         superposition_t[:,i] = superposition(t_0+i*dt)
     
     return superposition_t
-
-
-=======
-        
-
-# Branch test
->>>>>>> bound-cnds
