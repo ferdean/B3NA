@@ -461,7 +461,6 @@ def get_sol(grid, coeffs):
         Solution function.
     """
     
-    # This for loop will be removed using the matrices ex and dx from computeMatrices()
     def w(y):
         beam = np.zeros(y.shape)
         
@@ -629,19 +628,14 @@ def Newmarkmethod_step(u, u_1, u_2, h, M, S, p, beta = 1/4, gamma = 1/2):
 
     """
 
-    #calculating intermediate steps, i.e. step (a) in the transcript
     u_star = u + u_1*h+(0.5-beta)*u_2*h**2
     u_1_star = u_1 + (1-gamma)*u_2*h
     
-    #Creating and solving linear system to solve for u"_{j+1}
-    # S = S.tocsr() #otherewise there is a formatting error maybe skip
-    # M = M.tocsr() #coo format in all the other functions
-    A = M + beta*h**2*S 
-    b = p - S@u_star
+    A   = M + beta*h**2*S 
+    b   = p - S@u_star
     u_2 = sparse.linalg.spsolve(A, b)
 
-    #Solving for u_{j+1}, u'_{j+1}
-    u = u_star + beta*h**2*u_2
+    u   = u_star + beta*h**2*u_2
     u_1 = u_1_star + gamma*h*u_2
 
     return u, u_1, u_2
@@ -665,7 +659,6 @@ def newmarkMethod(M, S, RHSe, initialConds, h, t0, T, verbose = False):
             print("Epoch: " + str(idx + 1) +"/" + str(nS))
         
     return sol, time
-<<<<<<< HEAD
 
 # +++++++++++++++++++++++++++
 # +    EIGENVALUE METHOD    +
