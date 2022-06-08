@@ -540,7 +540,6 @@ def plotMesh(grid, nData = 100):
 
 
 def Newmarkmethod_step(u, u_1, u_2, h, M, S, p, beta = 1/4, gamma = 1/2):
-
     """
     Calculates one iterate of the Newmark method
 
