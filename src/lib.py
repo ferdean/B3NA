@@ -6,7 +6,9 @@ Bending of Bernoulli beams project (numerical analysis) library of functions.
 """
 
 import numpy as np
+from numpy import radians as rad
 import matplotlib.pyplot as plt
+from matplotlib.patches import Arc, RegularPolygon
 from scipy.integrate import fixed_quad
 from scipy import sparse
 import scipy as sp
@@ -345,7 +347,7 @@ def getRHS(grid, q):
     return RHS
 
 
-def getPointForce(grid, nodeID, forces):
+def getPointForce(grid, nodeID, forces, loadType = 'force'):
     
     nN    = grid.shape[0]  # Number of nodes
     nDOFn = 2              # Number of DOF per node
@@ -357,7 +359,14 @@ def getPointForce(grid, nodeID, forces):
     
     RHS = np.zeros((nDOFg,))
     
-    RHS[np.multiply(2, nodeID)] = forces
+    if loadType == 'force':
+        RHS[np.multiply(2, nodeID)] = forces
+    
+    elif loadType == 'moment':
+        RHS[np.multiply(2, nodeID) + 1] = forces
+        
+    else: 
+        raise ValueError("Not implemented type of load")
              
     return RHS
 
@@ -566,6 +575,23 @@ def plotMesh(grid, nData = 100, BCtype = 'cantilever'):
     
     return fig
 
+def drawCirc(ax, radius, centX, centY, angle_, theta2_, color_='black'):
+    arc = Arc([centX,centY],radius,radius,angle=angle_,
+          theta1=0,theta2=theta2_,capstyle='round',linestyle='-',lw=1.5,color=color_)
+    ax.add_patch(arc)
+
+    endX=centX+(radius/2)*np.cos(rad(theta2_+angle_)) #Do trig to determine end position
+    endY=centY+(radius/2)*np.sin(rad(theta2_+angle_))
+
+    ax.add_patch(                    #Create triangle as arrow head
+        RegularPolygon(
+            (endX, endY),            # (x,y)
+            3,                       # number of vertices
+            radius/9,                # radius
+            rad(angle_+theta2_),     # orientation
+            color=color_
+        )
+    )
 # ++++++++++++++++++++++++++++++++++++++++++++++
 # +              NEWMARK METHOD                +
 # ++++++++++++++++++++++++++++++++++++++++++++++

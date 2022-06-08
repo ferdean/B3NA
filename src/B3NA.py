@@ -56,6 +56,8 @@ class mesher:
         self.L   = 1.0      # [m]
         self.nN  = 30       # [-]
       
+          
+      
         titleFont    = ("CMU Sans Serif", 14, "bold")
         textFont     = ("CMU Sans Serif", 10)
                 
@@ -153,7 +155,9 @@ class window:
         
         self.T  = 10
         self.h  = 1E-3
-                
+        
+        self.BCtype = 'cantilever'
+        
         self.mesh = mesher.mesh
         self.L    = mesher.L
         self.nN   = mesher.nN
@@ -274,7 +278,7 @@ class window:
         dL = np.zeros(nN*2);    dL[-2] = 1.0
         
         # Apply BCs
-        self.Me, self.Se, self.RHSe = fixBeam(M, S, RHS, (e0, eL), (d0, dL), self.BC)
+        self.Me, self.Se, self.RHSe = fixBeam(M, S, RHS, (e0, eL), (d0, dL), self.BC, self.BCtype)
         
         # Solve
         self.staticSol      = sparse.linalg.spsolve(self.Se, self.RHSe)
@@ -309,7 +313,7 @@ class window:
     
     def plot(self):
         
-        figure, self.ymax = plotBeam(self.mesh, self.staticSol[:-2], 50, -1)
+        figure, self.ymax = plotBeam(self.mesh, self.staticSol[:-2], -1, nData = 50)
         
         chart = FigureCanvasTkAgg(figure, self.root)
         chart.get_tk_widget().grid(rowspan = 12, row = 0, column = 0)
