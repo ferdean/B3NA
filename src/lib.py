@@ -609,4 +609,5 @@ def newmarkMethod(M, S, RHSe, initialConds, h, t0, T, verbose = False):
         
     return sol, time
         
-    
+
+# Branch test

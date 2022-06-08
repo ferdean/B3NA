@@ -359,7 +359,6 @@ class window:
 
 ### TODO: Posibility to specify force
         
-
 main()
 
 
