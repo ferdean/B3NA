@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+
 from lib import *
 
 # %% Problem characteristics
@@ -32,10 +33,10 @@ RHS   = getRHS(grid, q)
 
 # %% CASE 2: Nodal force
 
-node   = np.array([10, -1])   # ID of nodes where force is applied
-force  = np.array([k, -k/5])  # Applied nodal forces
+# node   = np.array([10, -1])   # ID of nodes where force is applied
+# force  = np.array([k, -k/5])  # Applied nodal forces
 
-RHS = getPointForce(grid, node, force)
+# RHS = getPointForce(grid, node, force)
 
 
 # %% Get steady solution (works as initial conditions) 
@@ -57,13 +58,13 @@ steadySol      = sparse.linalg.spsolve(Se, RHSe)
 
 # %% Time simulation
 
-u_1_0 = np.zeros(sol.shape)
-u_2_0 = np.zeros(sol.shape)
+u_1_0 = np.zeros(steadySol.shape)
+u_2_0 = np.zeros(steadySol.shape)
 
 initialConds = (steadySol, u_1_0, u_2_0)
 
 # Simulation characteristics
-RHSe  = np.zeros(sol.shape)   # Free vibration case
+RHSe  = np.zeros(steadySol.shape)   # Free vibration case
 h     = 1e-3
 t0    = 0.0
 T     = 10.0

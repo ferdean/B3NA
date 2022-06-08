@@ -3,10 +3,13 @@ import matplotlib.pyplot as plt
 
 from lib import *
 
-# %% Matrix computation and solver tests
+import time
+from lib import *
+
+# %%
 
 # +++++++++++++++++++++++++++++++++++++++++++++++
-# +    Constant material properties (Vova's)    +
+# +    Matrix computation and solver tests      +
 # +++++++++++++++++++++++++++++++++++++++++++++++
 
 # Material properties
@@ -45,12 +48,8 @@ Me, Se, RHSe = fixBeam(M, S, RHS, (e0, eL), (d0, dL), BC)
 
 # Solve
 sol      = sparse.linalg.spsolve(Se, RHSe)
-figura = plotBeam(grid, sol[:-2], 100, -1)
 
-# %% Check computational cost 
-
-import time
-from lib import *
+# Check computational cost 
 
 start = time.time()
 sym_S, _  = getMatrices(grid, E, I, mu, quadrature = False)
@@ -63,78 +62,11 @@ print("--- Quadrature: %.2E seconds" % (time.time() - start))
 error = np.linalg.norm(sym_S.toarray() - quad_S.toarray(), ord = 2)
 print("--- Error: %.2E" % (error))
 
-        
-# %% Newmark method
+# %% 
 
-# Initial conditions
-u_0   = sol
-u_1_0 = np.zeros(sol.shape)
-u_2_0 = np.zeros(sol.shape)
-
-initialConds = (u_0, u_1_0, u_2_0)
-
-# Simulation characteristics
-RHSe  = np.zeros(sol.shape) 
-h     = 1e-3
-t0    = 0.0
-T     = 10.0
-
-sol, time     = newmarkMethod(Me, Se, RHSe, initialConds, h, t0, T, verbose = False)
-
-# %% Generate animation
-
-import matplotlib.animation as animation
-
-nData  = 100
-
-nN     = len(grid)
-x_plot = np.linspace(grid.min(), grid.max(), nData) 
-ylim   = (-2e-5, 2e-5)
-
-
-plt.rcParams['text.usetex'] = True
-plt.rcParams.update({'font.size' : 9})
-
-fig = plt.figure(figsize=(5, 3), dpi = 150)
-ax  = fig.add_subplot(111)
-
-# fig, ax = plt.subplots()
-
-def animation_frame(i): 
-    ax.clear()
-    beam = get_sol(grid, sol[0:-2, i])
-    
-    ax.plot(x_plot, beam(x_plot) * 1e3, color= '#808080', label = 'numerical')
-    ax.plot([grid.min(), grid.max()], [0, 0], color= '#959595', linestyle= '--')
-    
-    
-    ax.axvline(x=0, color="black", linestyle="-", linewidth = 5)
-    
-    ax.set_xlabel('x-direction (-)')
-    ax.set_ylabel('deformation (mm)')
-    
-    ax.tick_params(direction= 'in', which= 'major', length= 4, bottom= True,
-        top=True, right= False, left=True, width = 1)
-    
-    # low, high = plt.ylim()
-    # bound = max(abs(low), abs(high))
-    # plt.ylim(-bound, bound)
-    
-    plt.ylim(ylim[0], ylim[1])
-    
-    plt.title('t = %.2f s'%(time[i]))
-    
-    plt.text(0.875, 0.425,'undeformed', ha='center', va='center', transform=ax.transAxes, color= '#959595')
-    
-    plt.legend(loc = 'lower left')
-    
-    return fig
-
-ani = animation.FuncAnimation(fig, animation_frame, interval=10)
-
-# ani.save('temporal_2.gif', writer='imagemagick', fps= 50)
-
-# %% Save clicks
+# +++++++++++++++++++++++++++++++++++++++++++++++
+# +             Save clicks - test              +
+# +++++++++++++++++++++++++++++++++++++++++++++++
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -205,4 +137,11 @@ grid = np.linspace(0, 6, 5)
 
 ### Main loop
 root.mainloop()
+
+# %% 
+
+# +++++++++++++++++++++++++++++++++++++++++++++++
+# +         Different boundary conditions       +
+# +++++++++++++++++++++++++++++++++++++++++++++++
+
 
