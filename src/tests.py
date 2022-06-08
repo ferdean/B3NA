@@ -3,206 +3,394 @@ import matplotlib.pyplot as plt
 
 from lib import *
 
-# %% Matrix computation and solver tests
-
+# %% Test #1:
+#
 # +++++++++++++++++++++++++++++++++++++++++++++++
-# +    Constant material properties (Vova's)    +
+# +    Cantilever beam with distributed load    +
 # +++++++++++++++++++++++++++++++++++++++++++++++
 
-# Material properties
+# Material and mesh properties
+
 E  = 210      # [N/mm2]
 I  = 3.3e7    # [mm4]
-k  = 1000     # [N]
+k  = 1e3      # [N]
 L  = 1        # [m]
 nN = 30       # [-]
 mu = 20       # [kg/m]
 
-# Problem characteristics (mesh, BCs and applied force)
+### Boundaries
+BCtype = 'cantilever'
+BC     = (0, 0, 0, 0)   # (w(0), w'(0), Q(L), M(L))
+
+### Mesh
 grid = np.linspace(0, L, nN)
 
-BC   = (0, 0, 0, 0)
-
+### Load
 def q(x):
-    return k * x
+    return k * x      
 
-def exact(x):
-    return (20*k*L**3*x**2 - 10*k*L**2*x**3 + k*x**5)/(120*E*I)
-
-S, M  = getMatrices(grid, E, I, mu, quadrature = True)
+def analytical(x):
+    return - (20*k*L**3*x**2 - 10*k*L**2*x**3 + k*x**5)/(120*E*I)
 
 RHS   = getRHS(grid, q)
-# RHS  = getPointForce(grid, [2, 10, 15], [-k, 5*k, -2.5*k])
 
-
+### Main solver
+S, M  = getMatrices(grid, E, I, mu, quadrature = True)
 
 e0 = np.zeros(nN*2);    e0[0]  = 1.0
-eL = np.zeros(nN*2);    eL[-1] = 1.0
+eL = np.zeros(nN*2);    eL[-2] = 1.0
+
 d0 = np.zeros(nN*2);    d0[1]  = 1.0
-dL = np.zeros(nN*2);    dL[-2] = 1.0
+dL = np.zeros(nN*2);    dL[-1] = 1.0
 
 # Apply BCs
-Me, Se, RHSe = fixBeam(M, S, RHS, (e0, eL), (d0, dL), BC)
+Me, Se, RHSe = fixBeam(M, S, RHS, (e0, eL), (d0, dL), BC, BCtype)
 
 # Solve
-sol      = sparse.linalg.spsolve(Se, RHSe)
-figura = plotBeam(grid, sol[:-2], 100, -1)
+sol     = sparse.linalg.spsolve(Se, - RHSe)
 
-# %% Check computational cost 
-
-import time
-from lib import *
-
-start = time.time()
-sym_S, _  = getMatrices(grid, E, I, mu, quadrature = False)
-print("--- Symbolic: %2.1f seconds" % (time.time() - start))
-
-start    = time.time()
-quad_S, _ = getMatrices(grid, E, I, mu, quadrature = True)
-print("--- Quadrature: %.2E seconds" % (time.time() - start))
-
-error = np.linalg.norm(sym_S.toarray() - quad_S.toarray(), ord = 2)
-print("--- Error: %.2E" % (error))
-
-        
-# %% Newmark method
-
-# Initial conditions
-u_0   = sol
-u_1_0 = np.zeros(sol.shape)
-u_2_0 = np.zeros(sol.shape)
-
-initialConds = (u_0, u_1_0, u_2_0)
-
-# Simulation characteristics
-RHSe  = np.zeros(sol.shape) 
-h     = 1e-3
-t0    = 0.0
-T     = 10.0
-
-sol, time     = newmarkMethod(Me, Se, RHSe, initialConds, h, t0, T, verbose = False)
-
-# %% Generate animation
-
-import matplotlib.animation as animation
-
+### Plot solution
+# General definitions
 nData  = 100
-
-nN     = len(grid)
 x_plot = np.linspace(grid.min(), grid.max(), nData) 
-ylim   = (-2e-5, 2e-5)
-
+    
+beam = get_sol(grid, sol[:-2])
 
 plt.rcParams['text.usetex'] = True
 plt.rcParams.update({'font.size' : 9})
 
-fig = plt.figure(figsize=(5, 3), dpi = 150)
-ax  = fig.add_subplot(111)
+fig, ax = plt.subplots(2, 1, figsize=(5, 3), dpi = 150, sharex = True)
 
-# fig, ax = plt.subplots()
+# Load plot
+ax[0].fill_between(x_plot, q(x_plot), color = 'r', alpha = 0.5, label = 'distributed load')
+ax[0].plot([grid.min(), grid.max()], [beam(x_plot)[0]*1e3, beam(x_plot)[0]*1e3], color= '#959595', linestyle= '-')
+ax[0].axvline(x=0, color="black", linestyle="-", linewidth = 5)
 
-def animation_frame(i): 
-    ax.clear()
-    beam = get_sol(grid, sol[0:-2, i])
+ax[0].legend(loc = 'lower right')
+
+ax[0].set_ylabel('load (N)')
+
+ax[0].tick_params(direction= 'in', which= 'major', length= 4, bottom= True,
+       top=True, right= False, left=True, width = 1)
+ax[0].ticklabel_format(style = 'sci', scilimits = (-1, 1))
+
+low, high = ax[0].set_ylim()
+ax[0].set_ylim(beam(x_plot)[0]*2e3 - high * 1.25, high * 1.25)
+
+# Beam plot
+ax[1].plot(x_plot, beam(x_plot) * 1e3, color= '#808080', label = 'numerical')
+ax[1].plot([grid.min(), grid.max()], [beam(x_plot)[0]*1e3, beam(x_plot)[0]*1e3], color= '#959595', linestyle= '--')
+ax[1].plot(x_plot, analytical(x_plot) * 1e3, color = 'r', linestyle = '-.', label = 'analytical')
+ax[1].axvline(x=0, color="black", linestyle="-", linewidth = 5)
+
+plt.legend(loc = 'upper right')
     
-    ax.plot(x_plot, beam(x_plot) * 1e3, color= '#808080', label = 'numerical')
-    ax.plot([grid.min(), grid.max()], [0, 0], color= '#959595', linestyle= '--')
-    
-    
-    ax.axvline(x=0, color="black", linestyle="-", linewidth = 5)
-    
-    ax.set_xlabel('x-direction (-)')
-    ax.set_ylabel('deformation (mm)')
-    
-    ax.tick_params(direction= 'in', which= 'major', length= 4, bottom= True,
-        top=True, right= False, left=True, width = 1)
-    
-    # low, high = plt.ylim()
-    # bound = max(abs(low), abs(high))
-    # plt.ylim(-bound, bound)
-    
-    plt.ylim(ylim[0], ylim[1])
-    
-    plt.title('t = %.2f s'%(time[i]))
-    
-    plt.text(0.875, 0.425,'undeformed', ha='center', va='center', transform=ax.transAxes, color= '#959595')
-    
-    plt.legend(loc = 'lower left')
-    
-    return fig
+ax[1].set_xlabel('x-direction (-)')
+ax[1].set_ylabel('deformation (mm)')
 
-ani = animation.FuncAnimation(fig, animation_frame, interval=10)
+ax[1].tick_params(direction= 'in', which= 'major', length= 4, bottom= True,
+       top=True, right= False, left=True, width = 1)
 
-# ani.save('temporal_2.gif', writer='imagemagick', fps= 50)
+low, high = ax[1].set_ylim()
+ax[1].set_ylim(low * 1.25, beam(x_plot)[0]*2e3 - low * 1.25)
 
-# %% Save clicks
-
-import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
-
-try:
-    import Tkinter as tk
-except:
-    import tkinter as tk
-
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-
-### Figure object definition
-fig = plt.Figure(figsize = (5, 3), dpi = 150)
-ax     = fig.add_subplot(111)
-
-### Tkinter window
-root   = Tk.Tk()
-canvas = FigureCanvasTkAgg(fig, master=root)
-canvas.get_tk_widget().grid(column=0,row=1)
-
-### Function definition
-coords = []
-
-def on_click(event):
-    if event.inaxes is not None:
-        # print(event.xdata, event.ydata)
-        global coords
-        # coords.append((event.xdata, event.ydata))
-        
-        def find_nearest(array, value):
-            array = np.asarray(array)
-            idx = (np.abs(array - value)).argmin()
-            return array[idx]
-        
-        x = find_nearest(grid, event.xdata)
-        print(x)
-        
-        plt.clf()
-        ax.scatter(x, np.sin(x), color = 'red', s= 5)
-        
-    else:
-        print('Clicked ouside axes bounds but inside plot window')
-    
-
-### Plot definition
-
-x_plot = np.linspace(0, 2*np.pi, 500)
-y_plot = np.sin(x_plot) # Toy data
-
-line, = ax.plot(x_plot, y_plot, color= '#808080')
-
-ax.plot(x_plot, np.zeros(x_plot.shape), color= '#959595', linestyle = '--')
-ax.axvline(x = 0, color="black", linestyle="-", linewidth = 5)
-
-ax.set_ylabel('y-dimension (-)')
-ax.set_xlabel('x-dimension (-)')
-
-ax.tick_params(direction= 'in', which= 'major', length= 4, bottom= True,
-    top=True, right= False, left=True, width = 1)
-
-clicks = fig.canvas.mpl_connect('button_press_event', on_click)
 plt.show()
 
+# %% Test #2:
+#
+# +++++++++++++++++++++++++++++++++++++++++++++++
+# +  Simply supported beam with point force     +
+# +++++++++++++++++++++++++++++++++++++++++++++++
 
-### Some postprocess
-grid = np.linspace(0, 6, 5)
+# Material and mesh properties
+E  = 210      # [N/mm2]
+I  = 3.3e7    # [mm4]
+k  = 1e3      # [N]
+L  = 1        # [m]
+nN = 3        # [-]
+mu = 0.1      # [kg/m]
 
-### Main loop
-root.mainloop()
+### Boundaries
+BCtype = 'fixed'
+BC     = (0, 0, 0, 0)   # (w(0), w(L), M(0), M(L))
 
+### Mesh
+grid = np.linspace(0, L, nN)
+
+### Load
+node   = np.array([1])   # ID of nodes where force is applied
+force  = np.array([-k])  # Applied nodal forces
+
+RHS = getPointForce(grid, node, force)
+
+def analytical(x):    
+    return np.piecewise(x, [x < L/2, x>= L/2], [lambda x: (-k*x / (48 * E * I)) * (3*L**2 - 4*x**2), lambda x: (-k*(L-x) / (48 * E * I)) * (3*L**2 - 4*(L-x)**2)])
+
+### Main solver
+S, M  = getMatrices(grid, E, I, mu, quadrature = True)
+
+e0 = np.zeros(nN*2);    e0[0]  = 1.0
+eL = np.zeros(nN*2);    eL[-2] = 1.0
+
+d0 = np.zeros(nN*2);    d0[1]  = 1.0
+dL = np.zeros(nN*2);    dL[-1] = 1.0
+
+# Apply BCs
+Me, Se, RHSe = fixBeam(M, S, RHS, (e0, eL), (d0, dL), BC, BCtype)
+
+# Solve
+sol     = sparse.linalg.spsolve(Se, RHSe)
+
+### Plot solution
+# General definitions
+nData  = 100
+x_plot = np.linspace(grid.min(), grid.max(), nData) 
+    
+beam = get_sol(grid, sol[:-2])
+
+plt.rcParams['text.usetex'] = True
+plt.rcParams.update({'font.size' : 9})
+
+fig, ax = plt.subplots(2, 1, figsize=(5, 3), dpi = 150, sharex = True)
+
+# Load plot
+ax[0].plot([grid.min(), grid.max()], [beam(x_plot)[0]*1e3, beam(x_plot)[0]*1e3], color= '#959595', linestyle= '-')
+ax[0].axvline(x=0, color="black", linestyle="-", linewidth = 5)
+ax[0].axvline(x = grid.max(), color="black", linestyle="-", linewidth = 5) 
+
+ax[0].arrow(L/2, k, 0, -k, length_includes_head = True, head_width = 0.02, head_length = 200, fc='r', ec='r', label = 'point force', zorder=10)
+
+ax[0].legend(loc = 'lower right')
+
+ax[0].set_ylabel('load (N)')
+
+ax[0].tick_params(direction= 'in', which= 'major', length= 4, bottom= True,
+       top=True, right= False, left=True, width = 1)
+ax[0].ticklabel_format(style = 'sci', scilimits = (-1, 1))
+
+low, high = ax[0].set_ylim()
+ax[0].set_ylim(beam(x_plot)[0]*2e3 - high * 1.25, high * 1.25)
+
+# Beam plot
+ax[1].plot(x_plot, beam(x_plot) * 1e3, color= '#808080', label = 'numerical')
+ax[1].plot([grid.min(), grid.max()], [beam(x_plot)[0]*1e3, beam(x_plot)[0]*1e3], color= '#959595', linestyle= '--')
+ax[1].plot(x_plot, analytical(x_plot) * 1e3, color = 'r', linestyle = '-.', label = 'analytical')
+ax[1].axvline(x=0, color="black", linestyle="-", linewidth = 5)
+ax[1].axvline(x = grid.max(), color="black", linestyle="-", linewidth = 5) 
+
+plt.legend(loc = 'upper right')
+    
+ax[1].set_xlabel('x-direction (-)')
+ax[1].set_ylabel('deformation (mm)')
+
+ax[1].tick_params(direction= 'in', which= 'major', length= 4, bottom= True,
+       top=True, right= False, left=True, width = 1)
+
+low, high = ax[1].set_ylim()
+ax[1].set_ylim(low * 1.25, beam(x_plot)[0]*2e3 - low * 1.25)
+
+plt.show()
+
+# %% Test #3:
+#
+# +++++++++++++++++++++++++++++++++++++++++++++++
+# +       Cantilever with different loads       +
+# +++++++++++++++++++++++++++++++++++++++++++++++
+
+# Material and mesh properties
+E  = 210      # [N/mm2]
+I  = 3.3e7    # [mm4]
+k  = 1e3      # [N]
+L  = 1        # [m]
+nN = 21       # [-]
+mu = 0.1      # [kg/m]
+
+### Boundaries
+BCtype = 'cantilever'
+BC     = (0, 0, 0, 0)   # (w(0), w(L), M(0), M(L))
+
+### Mesh
+grid = np.linspace(0, L, nN)
+plotMesh(grid)
+
+### Loads
+node   = np.array([7, -1])   # ID of nodes where force is applied
+force  = np.array([5*k, -k])   # Applied nodal forces
+
+def q(x):
+    return - k/3  
+
+def analytical(x):
+    def_1 = - k * x**2 /(6 * E * I) * (3 * L - x)
+    def_2 = np.piecewise(x, [x < grid[7], x>= grid[7]], [lambda x: (5*k*x**2 / (6 * E * I)) * (3*grid[7] - x), lambda x: (5*k*grid[7]**2 / (6 * E * I)) * (3*x - grid[7])])
+    def_3 = - k/3 * x**2 /(24*E*I) * (6*L**2 - 4*L*x + x**2)
+    
+    return def_1 + def_2 + def_3
+
+RHS_1 = getPointForce(grid, node, force)
+RHS_2 = getRHS(grid, q)
+
+RHS   = RHS_1 + RHS_2
+
+### Main solver
+S, M  = getMatrices(grid, E, I, mu, quadrature = True)
+
+e0 = np.zeros(nN*2);    e0[0]  = 1.0
+eL = np.zeros(nN*2);    eL[-2] = 1.0
+
+d0 = np.zeros(nN*2);    d0[1]  = 1.0
+dL = np.zeros(nN*2);    dL[-1] = 1.0
+
+# Apply BCs
+Me, Se, RHSe = fixBeam(M, S, RHS, (e0, eL), (d0, dL), BC, BCtype)
+
+# Solve
+sol     = sparse.linalg.spsolve(Se, RHSe)
+
+### Plot solution
+# General definitions
+nData  = 100
+x_plot = np.linspace(grid.min(), grid.max(), nData) 
+    
+beam = get_sol(grid, sol[:-2])
+
+plt.rcParams['text.usetex'] = True
+plt.rcParams.update({'font.size' : 9})
+
+fig, ax = plt.subplots(2, 1, figsize=(5, 3), dpi = 150, sharex = True)
+
+# Load plot
+ax[0].plot([grid.min(), grid.max()], [beam(x_plot)[0]*1e3, beam(x_plot)[0]*1e3], color= '#959595', linestyle= '-')
+ax[0].axvline(x=0, color="black", linestyle="-", linewidth = 5)
+
+ax[0].arrow(grid[7], - 2 * k, 0, 2 * k, length_includes_head = True, head_width = 0.02, head_length = 600, fc='r', ec='r', label = 'point forces', zorder=10)
+ax[0].arrow(grid[-1], k, 0, - k, length_includes_head = True, head_width = 0.01, head_length = 300, fc='r', ec='r', zorder=10)
+ax[0].fill_between(x_plot, - 1.2*q(x_plot), color = 'b', alpha = 0.5, label = 'distributed load')
+
+ax[0].legend(loc = 'lower right')
+
+ax[0].set_ylabel('load (N)')
+
+ax[0].tick_params(direction= 'in', which= 'major', length= 4, bottom= True,
+       top=True, right= False, left=True, width = 1)
+ax[0].ticklabel_format(style = 'sci', scilimits = (-1, 1))
+
+low, high = ax[0].set_ylim()
+ax[0].set_ylim(low * 1.25, beam(x_plot)[0]*2e3 - low * 1.25)
+
+# Beam plot
+ax[1].plot(x_plot, beam(x_plot) * 1e3, color= '#808080', label = 'numerical')
+ax[1].plot([grid.min(), grid.max()], [beam(x_plot)[0]*1e3, beam(x_plot)[0]*1e3], color= '#959595', linestyle= '--')
+ax[1].plot(x_plot, analytical(x_plot) * 1e3, color = 'r', linestyle = '-.', label = 'analytical')
+ax[1].axvline(x=0, color="black", linestyle="-", linewidth = 5)
+
+plt.legend(loc = 'upper right')
+    
+ax[1].set_xlabel('x-direction (-)')
+ax[1].set_ylabel('deformation (mm)')
+
+ax[1].tick_params(direction= 'in', which= 'major', length= 4, bottom= True,
+       top=True, right= False, left=True, width = 1)
+
+low, high = ax[1].set_ylim()
+ax[1].set_ylim(low * 1.25, beam(x_plot)[0]*2e3 - low * 1.25)
+
+plt.show()
+
+# %% Test #4:
+#
+# +++++++++++++++++++++++++++++++++++++++++++++++
+# +        Cantilever with applied moment       +
+# +++++++++++++++++++++++++++++++++++++++++++++++
+
+# Material and mesh properties
+E  = 210      # [N/mm2]
+I  = 3.3e7    # [mm4]
+k  = -1e5     # [Nm]
+L  = 1        # [m]
+nN = 5        # [-]
+mu = 0.1      # [kg/m]
+
+### Boundaries
+BCtype = 'fixed'
+BC     = (0, 0, 0, 0)   # (w(0), w(L), M(0), M(L))
+
+### Mesh
+grid = np.linspace(0, L, nN)
+
+### Load
+node   = np.array([2])   # ID of nodes where force is applied
+force  = np.array([-k])  # Applied nodal forces
+
+RHS = getPointForce(grid, node, force, loadType = 'moment')
+
+def analytical(x):    
+    return np.piecewise(x, [x < L/2, x>= L/2], [lambda x: (k*x / (24 * L * E * I)) * (L**2 - 4 * x**2), lambda x: (-k*(L - x) / (24 * L * E * I)) * (L**2 - 4 * (L - x)**2)])
+
+### Main solver
+S, M  = getMatrices(grid, E, I, mu, quadrature = True)
+
+e0 = np.zeros(nN*2);    e0[0]  = 1.0
+eL = np.zeros(nN*2);    eL[-2] = 1.0
+
+d0 = np.zeros(nN*2);    d0[1]  = 1.0
+dL = np.zeros(nN*2);    dL[-1] = 1.0
+
+# Apply BCs
+Me, Se, RHSe = fixBeam(M, S, RHS, (e0, eL), (d0, dL), BC, BCtype)
+
+# Solve
+sol     = sparse.linalg.spsolve(Se, RHSe)
+
+### Plot solution
+# General definitions
+nData  = 100
+x_plot = np.linspace(grid.min(), grid.max(), nData) 
+    
+beam = get_sol(grid, sol[:-2])
+
+plt.rcParams['text.usetex'] = True
+plt.rcParams.update({'font.size' : 9})
+
+fig, ax = plt.subplots(2, 1, figsize=(5, 3), dpi = 150, sharex = True)
+
+# Load plot
+ax[0].plot([grid.min(), grid.max()], [beam(x_plot)[0]*1e3, beam(x_plot)[0]*1e3], color= '#959595', linestyle= '-', zorder = 0)
+ax[0].axvline(x=0, color="black", linestyle="-", linewidth = 5)
+ax[0].axvline(x = grid.max(), color="black", linestyle="-", linewidth = 5) 
+
+drawCirc(ax[0], 0.1, L/2, 0, 60, 270, color_= 'red')
+ax[0].scatter(L/2, 0, marker = 'o', color = 'r', s = 5, label = 'applied moment')
+
+ax[0].legend(loc = 'lower right')
+
+ax[0].set_ylabel('load $\cdot 10^{6}$ (Nm) ')
+
+ax[0].tick_params(direction= 'in', which= 'major', length= 4, bottom= True,
+       top=True, right= False, left=True, width = 1)
+
+# low, high = ax[0].set_ylim()
+# ax[0].set_ylim(beam(x_plot)[0]*2e3 - high * 1.25, high * 1.25)
+
+ax[0].set_ylim([-0.18, 0.18])
+
+# Beam plot
+ax[1].plot(x_plot, beam(x_plot) * 1e3, color= '#808080', label = 'numerical')
+ax[1].plot([grid.min(), grid.max()], [beam(x_plot)[0]*1e3, beam(x_plot)[0]*1e3], color= '#959595', linestyle= '--')
+ax[1].plot(x_plot, analytical(x_plot) * 1e3, color = 'r', linestyle = '-.', label = 'analytical')
+ax[1].axvline(x=0, color="black", linestyle="-", linewidth = 5)
+ax[1].axvline(x = grid.max(), color="black", linestyle="-", linewidth = 5) 
+
+plt.legend(loc = 'lower right')
+    
+ax[1].set_xlabel('x-direction (-)')
+ax[1].set_ylabel('deformation (mm)')
+
+ax[1].tick_params(direction= 'in', which= 'major', length= 4, bottom= True,
+       top=True, right= False, left=True, width = 1)
+ax[1].ticklabel_format(style = 'sci', scilimits = (-1, 1))
+
+low, high = ax[1].set_ylim()
+ax[1].set_ylim(low * 1.25, beam(x_plot)[0]*2e3 - low * 1.25)
+
+plt.show()

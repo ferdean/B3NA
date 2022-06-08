@@ -6,7 +6,9 @@ Bending of Bernoulli beams project (numerical analysis) library of functions.
 """
 
 import numpy as np
+from numpy import radians as rad
 import matplotlib.pyplot as plt
+from matplotlib.patches import Arc, RegularPolygon
 from scipy.integrate import fixed_quad
 from scipy import sparse
 from scipy.sparse.linalg import eigsh
@@ -345,7 +347,7 @@ def getRHS(grid, q):
     return RHS
 
 
-def getPointForce(grid, nodeID, forces):
+def getPointForce(grid, nodeID, forces, loadType = 'force'):
     
     nN    = grid.shape[0]  # Number of nodes
     nDOFn = 2              # Number of DOF per node
@@ -357,12 +359,19 @@ def getPointForce(grid, nodeID, forces):
     
     RHS = np.zeros((nDOFg,))
     
-    RHS[np.multiply(2, nodeID)] = forces
+    if loadType == 'force':
+        RHS[np.multiply(2, nodeID)] = forces
+    
+    elif loadType == 'moment':
+        RHS[np.multiply(2, nodeID) + 1] = forces
+        
+    else: 
+        raise ValueError("Not implemented type of load")
              
     return RHS
 
 
-def fixBeam(M, S, RHS, e, d, BC):
+def fixBeam(M, S, RHS, e, d, BC, BCtype):
     """
     Applies boundary conditions to the problem
 
@@ -382,9 +391,15 @@ def fixBeam(M, S, RHS, e, d, BC):
             *BC[1] = Derivative of the deformation at x = 0 (essential bc)
             *BC[2] = Shear force at x = L (physical bc)
             *BC[3] = Bending moment at x = L (physical bc)
+    BCtype: {string}
+        Type of beam:
+            * 'cantilever'
+            * 'fixed'
 
     Returns
     -------
+    Me: {array}
+        Constrained mass matrix.
     Se: {array}
         Constrained stiffness matrix.
     RHSe: {vector}
@@ -395,17 +410,32 @@ def fixBeam(M, S, RHS, e, d, BC):
     
     e0, eL = e
     d0, dL = d
-    a, b, QL, ML = BC
     
-    basisVector = sparse.csr_matrix(np.vstack((e0, d0)))
-            
-    RHSe = RHS + QL * eL + ML * dL
-    RHSe = np.hstack((RHSe, np.array([a, b])))
+    if BCtype == 'cantilever':
     
+        a, b, QL, ML = BC
+        
+        basisVector = sparse.csr_matrix(np.vstack((e0, d0)))
+                
+        RHSe = RHS + QL * eL + ML * dL
+        RHSe = np.hstack((RHSe, np.array([a, b])))
+                
+    elif BCtype == 'fixed':
+        
+        a0, aL, M0, ML = BC
+        
+        basisVector = sparse.csr_matrix(np.vstack((e0, -eL)))
+        
+        RHSe = RHS - M0 * d0 + ML * dL
+        RHSe = np.hstack((RHSe, np.array([a0, -aL])))
+        
+    else:
+        raise ValueError("Not implemented type of beam")
+           
     Se   = sparse.vstack((S, basisVector))
     Se   = sparse.hstack((Se, (sparse.hstack((basisVector, sparse.csr_matrix((2, 2))))).T))
     
-    Me   = sparse.vstack((sparse.hstack((M, sparse.csr_matrix((nDOF, 2)))), sparse.csr_matrix((2, nDOF + 2))))
+    Me   = sparse.vstack((sparse.hstack((M, sparse.csr_matrix((nDOF, 2)))), sparse.csr_matrix((2, nDOF + 2))))   
     
     return Me, Se, RHSe
 
@@ -443,7 +473,7 @@ def get_sol(grid, coeffs):
     
     return w
 
-def plotBeam(grid, coeffs, nData, ylim, *argv):
+def plotBeam(grid, coeffs, ylim, nData = 200, BCtype = 'cantilever', exact = None):
     """
     Plots the deformed beam
 
@@ -456,13 +486,16 @@ def plotBeam(grid, coeffs, nData, ylim, *argv):
                          and the even ones, derivative).
     nData: {int, optional}
         Number of plotting datapoints. The default is 200.
-
+    ylim: {tuple}
+    BCtype: {string}
+        Type of beam:
+            * 'cantilever'
+            * 'fixed'
     Returns
     -------
     None.
 
     """
-    nN     = len(grid)
     x_plot = np.linspace(grid.min(), grid.max(), nData) 
     
     beam = get_sol(grid, coeffs)
@@ -475,12 +508,15 @@ def plotBeam(grid, coeffs, nData, ylim, *argv):
     ax.plot(x_plot, beam(x_plot) * 1e3, color= '#808080', label = 'numerical')
     ax.plot([grid.min(), grid.max()], [beam(x_plot)[0]*1e3, beam(x_plot)[0]*1e3], color= '#959595', linestyle= '--')
     
-    for arg in argv: 
-        ax.plot(x_plot, arg(x_plot) * 1e3, color = 'r', linestyle = '-.', label = 'exact')
+    if exact != None:
+        ax.plot(x_plot, exact(x_plot) * 1e3, color = 'r', linestyle = '-.', label = 'analytical')
         plt.legend(loc = 'lower left')
     
     ax.axvline(x=0, color="black", linestyle="-", linewidth = 5)
     
+    if BCtype == 'fixed':
+        ax.axvline(x = grid.max(), color="black", linestyle="-", linewidth = 5) 
+        
     ax.set_xlabel('x-direction (-)')
     ax.set_ylabel('deformation (mm)')
     
@@ -505,10 +541,11 @@ def plotBeam(grid, coeffs, nData, ylim, *argv):
     
     return fig, bound
 
-def plotMesh(grid, nData = 100):
+def plotMesh(grid, nData = 100, BCtype = 'cantilever'):
     
-    x_plot = np.linspace(grid.min(), grid.max(), nData)
-    
+    if BCtype != 'cantilever' and BCtype != 'fixed':
+        raise ValueError("Not implemented type of beam")
+         
     yData  = np.zeros(grid.shape)
     
     plt.rcParams['text.usetex'] = True
@@ -517,13 +554,17 @@ def plotMesh(grid, nData = 100):
     color = ["black"]
     color = color * grid.size
     color[0] = 'white'
-    
+            
     fig, ax = plt.subplots(figsize=(5, 3), dpi = 150)
     
+    if BCtype == 'fixed':
+        ax.axvline(x = grid.max(), color="black", linestyle="-", linewidth = 5) 
+        color[-1] = 'white'
+   
     ax.plot([grid.min(), grid.max()], [0, 0], color= '#959595', linestyle= '-', zorder = 1)  
     ax.scatter(grid, yData, c = color, marker = 'x', s = 10, alpha = 1, zorder = 10) 
     ax.axvline(x=0, color="black", linestyle="-", linewidth = 5) 
-    
+        
     ax.set_xlabel('x-direction (-)')
     ax.set_ylabel('deformation (mm)')
     
@@ -534,6 +575,23 @@ def plotMesh(grid, nData = 100):
     
     return fig
 
+def drawCirc(ax, radius, centX, centY, angle_, theta2_, color_='black'):
+    arc = Arc([centX,centY],radius,radius,angle=angle_,
+          theta1=0,theta2=theta2_,capstyle='round',linestyle='-',lw=1.5,color=color_)
+    ax.add_patch(arc)
+
+    endX=centX+(radius/2)*np.cos(rad(theta2_+angle_)) #Do trig to determine end position
+    endY=centY+(radius/2)*np.sin(rad(theta2_+angle_))
+
+    ax.add_patch(                    #Create triangle as arrow head
+        RegularPolygon(
+            (endX, endY),            # (x,y)
+            3,                       # number of vertices
+            radius/9,                # radius
+            rad(angle_+theta2_),     # orientation
+            color=color_
+        )
+    )
 # ++++++++++++++++++++++++++++++++++++++++++++++
 # +              NEWMARK METHOD                +
 # ++++++++++++++++++++++++++++++++++++++++++++++
@@ -607,6 +665,7 @@ def newmarkMethod(M, S, RHSe, initialConds, h, t0, T, verbose = False):
             print("Epoch: " + str(idx + 1) +"/" + str(nS))
         
     return sol, time
+<<<<<<< HEAD
 
 # +++++++++++++++++++++++++++
 # +    EIGENVALUE METHOD    +
@@ -685,3 +744,8 @@ def eigenvalue_method_dynamic(t_0,t_f,Nt,M,S,modes):
     return superposition_t
 
 
+=======
+        
+
+# Branch test
+>>>>>>> bound-cnds
