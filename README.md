@@ -85,7 +85,7 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
 - [ ] Documentation and cleaning
     - [ ] Oral presentation (10-20 min video)
     - [ ] Written report (around 20 pages)
-    - [ ] Update README.md and repository documentation. 
+    - [x] Update README.md and repository documentation. 
  
  <p align="right">(<a href="#top">back to top</a>)</p>
 
