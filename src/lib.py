@@ -688,8 +688,8 @@ def eigenvalue_method(Me,Num,Se):
     eigfreq: {array}
         Vector of size N with the eigenfrequencies.
     eigvec: {array}
-        matrix of size N by two times the size of the grid + 4 (or +2 need to find this out :( ).    
-        the column i gives the coefficient/weights for the shape functions for 
+        matrix of size N by two times the size of the grid + 4 (or +2 need to find this out :( ),  
+        the column i gives the coefficient/weights for the shape functions of eigenmode i.
     """
 
     eigval, eigvec = eigsh(Me,Num,M = Se)
@@ -746,6 +746,35 @@ def eigenvalue_method_exact(grid, E, I, mu, L, N):
     return eigfreq,eigfuncs
 
 def eigenvalue_method_dynamic(t_0,t_f,Nt,M,S,modes,Num):
+
+    """
+    Calculates the superposition of the eigenmodes in time
+
+    Parameters
+    ----------
+    t_0:{scalar} 
+        initial time for the simulation
+    t_f:{scalar}
+        final time for the simulation
+    Nt: {integer}
+        Number of timesteps.
+    M: {array} 
+        Matrix at the left hand side of the generalized eigenvalue problem (i.e. mass matrix M).
+    S: {array} 
+        Matrix at right hand side of the generalized eigenvalue problem (i.e. stiffnes matrix S).
+    Modes: {array}
+        Array that contains the amplitude of the eigenmodes.
+    Num: {integer}
+        Maximum eigenmode number in the superposition.
+
+    Returns
+    -------
+    superposition_t: {array}
+        Matrix of size Nt by two times the size of the grid + 4 (or +2 need to find this out :( ),     
+        the column i gives the coefficient/weights for the shape functions at time t = i*(t_f-t_0)/Nt.
+    
+    """
+
     a_k = np.copy(modes)
     b_k = np.copy(modes)
 

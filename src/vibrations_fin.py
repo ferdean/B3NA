@@ -55,16 +55,17 @@ eigfreq_exact, eigfunc = eigenvalue_method_exact(grid, E, I, mu, L, 10)
 
 #Comparing the numerical and exact eigenfrequencies
 plt.figure()
-plt.plot(eigfreq_exact[:5],"*",label = "exact")
-plt.plot(eigfreq_num[:5],"o",label = "numerical")
-plt.xlabel("ith eigenfrequency")
+plt.plot(eigfreq_exact[:5],"*",label = "Exact")
+plt.plot(eigfreq_num[:5],"o",label = "Numerical")
+plt.xlabel("I-th eigenfrequency")
 plt.legend(loc = "upper left")
+plt.title("Comparison of the exact and numerical eigenfrequencies")
 plt.show()
 
 #Simulating superpositions of eigenvectors
 n_modes = np.array([7]) #The mode numbers that will be in the superpositions
 Num = np.max(n_modes)
-modes = np.zeros(Num)
+modes = np.zeros(np.max(n_modes))
 
 for i in n_modes:
     modes[i-1] = 1e-3
