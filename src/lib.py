@@ -5,6 +5,7 @@ Bending of Bernoulli beams project (numerical analysis) library of functions.
 =============================================================================
 """
 
+from types import NoneType
 import numpy as np
 from numpy import radians as rad
 import matplotlib.pyplot as plt
@@ -294,7 +295,7 @@ def getMatrices(grid, E, I, mu, quadrature = True):
     return S, M 
 
 
-def getRHS(grid, q): 
+def getRHS(grid, q, t = None): 
     """
     Computes inhomogeneity. Everything is done in the matrix-vector multiplication 
     form (not super obvious, but less for loops and increased efficiency). Since 
@@ -340,7 +341,14 @@ def getRHS(grid, q):
     q_nodes = np.tile(nodes,(N-1,1)) * np.tile(h,(4,1)).T + np.tile(grid[:-1],(4,1)).T
     
     # Compute q at those locations and scale each q value by the element length(the element at which this node happened to be)
-    q_vec = (q(q_nodes) * np.tile(h,(4,1)).T).flatten() 
+    print(t)
+    try:
+        q_vec = (q(q_nodes) * np.tile(h,(4,1)).T).flatten() 
+    except TypeError:
+        def RHS(t):
+            q_vec = (q(q_nodes,t) * np.tile(h,(4,1)).T).flatten()
+            return G@q_vec
+        return RHS
 
     RHS  = G @ q_vec
     
@@ -417,8 +425,13 @@ def fixBeam(M, S, RHS, e, d, BC, BCtype):
         
         basisVector = sparse.csr_matrix(np.vstack((e0, d0)))
                 
-        RHSe = RHS + QL * eL + ML * dL
-        RHSe = np.hstack((RHSe, np.array([a, b])))
+        try:
+            RHSe = RHS + QL * eL + ML * dL
+            RHSe = np.hstack((RHSe, np.array([a, b])))
+        except TypeError:
+            def RHSe(t):
+                RHSe = RHS(t) + QL * eL + ML * dL
+                return np.hstack((RHSe, np.array([a, b]))) 
                 
     elif BCtype == 'fixed':
         
@@ -426,9 +439,14 @@ def fixBeam(M, S, RHS, e, d, BC, BCtype):
         
         basisVector = sparse.csr_matrix(np.vstack((e0, -eL)))
         
-        RHSe = RHS - M0 * d0 + ML * dL
-        RHSe = np.hstack((RHSe, np.array([a0, -aL])))
-        
+        try:
+            RHSe = RHS - M0 * d0 + ML * dL
+            RHSe = np.hstack((RHSe, np.array([a0, -aL])))
+        except TypeError:
+            def RHSe(t):
+                RHSe = RHS(t) - M0 * d0 + ML * dL
+                return np.hstack((RHSe, np.array([a0, -aL])))
+
     else:
         raise ValueError("Not implemented type of beam")
            
@@ -601,7 +619,7 @@ def drawCirc(ax, radius, centX, centY, angle_, theta2_, color_='black'):
 # +              NEWMARK METHOD                +
 # ++++++++++++++++++++++++++++++++++++++++++++++
 
-def Newmarkmethod_step(u, u_1, u_2, h, M, S, p, beta = 1/4, gamma = 1/2):
+def Newmarkmethod_step(u, u_1, u_2, h, M, S, p, beta = 1/4, gamma = 1/2, t = None):
     """
     Calculates one iterate of the Newmark method
 
@@ -636,8 +654,12 @@ def Newmarkmethod_step(u, u_1, u_2, h, M, S, p, beta = 1/4, gamma = 1/2):
     u_star = u + u_1*h+(0.5-beta)*u_2*h**2
     u_1_star = u_1 + (1-gamma)*u_2*h
     
-    A   = M + beta*h**2*S 
-    b   = p - S@u_star
+    A   = M + beta*h**2*S
+    try: 
+        b   = p - S@u_star
+    except TypeError:
+        b   = p(t) - S@u_star
+
     u_2 = sparse.linalg.spsolve(A, b)
 
     u   = u_star + beta*h**2*u_2
@@ -657,7 +679,7 @@ def newmarkMethod(M, S, RHSe, initialConds, h, t0, T, verbose = False):
     sol = np.zeros((u.shape[0], nS))
     
     for idx in range(nS):
-        u, u_1, u_2 = Newmarkmethod_step(u, u_1, u_2, h, M, S, RHSe, beta = 1/4, gamma = 1/2)
+        u, u_1, u_2 = Newmarkmethod_step(u, u_1, u_2, h, M, S, RHSe, beta = 1/4, gamma = 1/2,t = time[idx]+h)
         sol[:, idx] = u
         
         if verbose:

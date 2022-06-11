@@ -26,10 +26,10 @@ grid = np.linspace(0, L, nN)
 BC   = (0, 0, 0, 0)
 
 # %% CASE 1: Linear load distribution
-def q(x):
-    return k * x      
+#def q(x):
+#    return k * x      
 
-RHS   = getRHS(grid, q)
+#RHS   = getRHS(grid, q)
 
 # %% CASE 2: Nodal force
 
@@ -38,6 +38,12 @@ RHS   = getRHS(grid, q)
 
 # RHS = getPointForce(grid, node, force)
 
+# %% CASE 3: Timedependent load distribution
+
+def q(x,t):
+    return k * x * np.exp(-10*t)    
+
+RHS   = getRHS(grid, q)
 
 # %% Get steady solution (works as initial conditions) 
 
@@ -50,10 +56,11 @@ d0 = np.zeros(nN*2);    d0[1]  = 1.0
 dL = np.zeros(nN*2);    dL[-2] = 1.0
 
 # Apply BCs
-Me, Se, RHSe = fixBeam(M, S, RHS, (e0, eL), (d0, dL), BC)
+Me, Se, RHSe = fixBeam(M, S, RHS, (e0, eL), (d0, dL), BC, "cantilever")
 
 # Solve
-steadySol      = sparse.linalg.spsolve(Se, RHSe)
+#steadySol      = sparse.linalg.spsolve(Se, RHSe) #non timedependent forcing
+steadySol      = sparse.linalg.spsolve(Se, RHSe(0)) #timedependent forcing
 
 
 # %% Time simulation
@@ -64,7 +71,8 @@ u_2_0 = np.zeros(steadySol.shape)
 initialConds = (steadySol, u_1_0, u_2_0)
 
 # Simulation characteristics
-RHSe  = np.zeros(steadySol.shape)   # Free vibration case
+#RHSe  = np.zeros(steadySol.shape)   # Free vibration case
+
 h     = 1e-3
 t0    = 0.0
 T     = 10.0
@@ -122,4 +130,4 @@ def animation_frame(i):
 
 ani = animation.FuncAnimation(fig, animation_frame, interval=10)
 
-# ani.save('temporal_2.gif', writer='imagemagick', fps= 50)
+ani.save('temporal_2.gif', writer='imagemagick', fps= 50)
