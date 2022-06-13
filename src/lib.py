@@ -444,6 +444,7 @@ def fixBeam(M, S, RHS, e, d, BC, BCtype):
 # +               POSTPROCESS                  +
 # ++++++++++++++++++++++++++++++++++++++++++++++
 
+
 def get_sol(grid, coeffs):
     """
     Returns the solution function
@@ -471,6 +472,7 @@ def get_sol(grid, coeffs):
         return beam
     
     return w
+
 
 def plotBeam(grid, coeffs, ylim, nData = 200, BCtype = 'cantilever', exact = None):
     """
@@ -540,6 +542,7 @@ def plotBeam(grid, coeffs, ylim, nData = 200, BCtype = 'cantilever', exact = Non
     
     return fig, bound
 
+
 def plotMesh(grid, nData = 100, BCtype = 'cantilever'):
     
     if BCtype != 'cantilever' and BCtype != 'fixed':
@@ -574,6 +577,7 @@ def plotMesh(grid, nData = 100, BCtype = 'cantilever'):
     
     return fig
 
+
 def drawCirc(ax, radius, centX, centY, angle_, theta2_, color_='black'):
     arc = Arc([centX,centY],radius,radius,angle=angle_,
           theta1=0,theta2=theta2_,capstyle='round',linestyle='-',lw=1.5,color=color_)
@@ -591,10 +595,11 @@ def drawCirc(ax, radius, centX, centY, angle_, theta2_, color_='black'):
             color=color_
         )
     )
+
+
 # ++++++++++++++++++++++++++++++++++++++++++++++
 # +              NEWMARK METHOD                +
 # ++++++++++++++++++++++++++++++++++++++++++++++
-
 
 def Newmarkmethod_step(u, u_1, u_2, h, M, S, p, beta = 1/4, gamma = 1/2):
     """
@@ -664,8 +669,30 @@ def newmarkMethod(M, S, RHSe, initialConds, h, t0, T, verbose = False):
 # +    EIGENVALUE METHOD    +
 # +++++++++++++++++++++++++++
 
-def eigenvalue_method(Me,Se):
-    eigval, eigvec = eigsh(Me,M = Se)
+def eigenvalue_method(Me,Num,Se):
+    """
+    Calculates and sorts the first N eigenvalues and eigenmodes of the 
+    generalized eigenvalue problem Me x = lambda Se x
+
+    Parameters
+    ----------
+    Me: {array}
+        Matrix in the left hand side of the generalized eigenvalue problem
+    Se: {array}
+        Matrix in the right hand side of the generalized eigenvalue problem
+    Num: {integer}
+        number of eigenfrequencies and eigenmodes. 
+
+    Returns
+    -------
+    eigfreq: {array}
+        Vector of size N with the eigenfrequencies.
+    eigvec: {array}
+        matrix of size N by two times the size of the grid + 4 (or +2 need to find this out :( ),  
+        the column i gives the coefficient/weights for the shape functions of eigenmode i.
+    """
+
+    eigval, eigvec = eigsh(Me,Num,M = Se)
     
     idx = eigval.argsort()[::-1]   
     eigval = eigval[idx]
@@ -676,7 +703,7 @@ def eigenvalue_method(Me,Se):
 def eigenvalue_method_exact(grid, E, I, mu, L, N):
 
     """
-    Calculates the eigenvalues and Nth eigenmode of the cantilever beam problem (simply supported beam will be added later)
+    Calculates the eigenvalues and Nth eigenmode of the cantilever beam problem exactly (simply supported beam will be added later)
 
     Parameters
     ----------
@@ -718,11 +745,40 @@ def eigenvalue_method_exact(grid, E, I, mu, L, N):
 
     return eigfreq,eigfuncs
 
-def eigenvalue_method_dynamic(t_0,t_f,Nt,M,S,modes):
+def eigenvalue_method_dynamic(t_0,t_f,Nt,M,S,modes,Num):
+
+    """
+    Calculates the superposition of the eigenmodes in time
+
+    Parameters
+    ----------
+    t_0:{scalar} 
+        initial time for the simulation
+    t_f:{scalar}
+        final time for the simulation
+    Nt: {integer}
+        Number of timesteps.
+    M: {array} 
+        Matrix at the left hand side of the generalized eigenvalue problem (i.e. mass matrix M).
+    S: {array} 
+        Matrix at right hand side of the generalized eigenvalue problem (i.e. stiffnes matrix S).
+    Modes: {array}
+        Array that contains the amplitude of the eigenmodes.
+    Num: {integer}
+        Maximum eigenmode number in the superposition.
+
+    Returns
+    -------
+    superposition_t: {array}
+        Matrix of size Nt by two times the size of the grid + 4 (or +2 need to find this out :( ),     
+        the column i gives the coefficient/weights for the shape functions at time t = i*(t_f-t_0)/Nt.
+    
+    """
+
     a_k = np.copy(modes)
     b_k = np.copy(modes)
 
-    w_k,eigvec = eigenvalue_method(M,S)
+    w_k,eigvec = eigenvalue_method(M,Num,S)
     
     dt = (t_f - t_0)/Nt
 
@@ -735,10 +791,3 @@ def eigenvalue_method_dynamic(t_0,t_f,Nt,M,S,modes):
         superposition_t[:,i] = superposition(t_0+i*dt)
     
     return superposition_t
-
-
-=======
-        
-
-# Branch test
->>>>>>> bound-cnds
