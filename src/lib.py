@@ -791,3 +791,45 @@ def eigenvalue_method_dynamic(t_0,t_f,Nt,M,S,modes,Num):
         superposition_t[:,i] = superposition(t_0+i*dt)
     
     return superposition_t
+
+
+# +++++++++++++++++++++++++++++++++
+# +    2D FRAME AND STRUCTURES    +
+# +++++++++++++++++++++++++++++++++
+
+def rotateBeam(locDef, L, x0, theta):    
+    """
+    Returns the rotated solution function
+
+    Parameters
+    ----------
+    locDef: {tuple}
+        Contains the deformation functions in both directions.
+            * v(x): longitudinal deformation
+            * w(x): transversal deformation
+    L: {scalar}
+        Beam length.
+    x0: {array}
+        (x,y) position of the initial point.
+    theta: {scalar}
+        Rotation angle.
+
+    Returns
+    -------
+    rotbeam: {function}
+        Parametric representation of the solution.
+    """
+    v, w = locDef
+    R    = np.array([[np.cos(theta), - np.sin(theta)],
+                    [np.sin(theta),   np.cos(theta)]])
+
+    def rotbeam(x):
+        beta    = np.array([v(x) + x, w(x)])      
+        globDef = x0.reshape((-1,1)) + R @ beta
+        
+        return globDef
+    
+    return rotbeam
+
+
+
