@@ -2,7 +2,7 @@
 # coments are ignored when file is read 
 NODES:
 0.0 0.0     FIXED       
--1.0 1.0    FORCE       0.0    -100.0
+-1.0 1.0    FORCE       0.0    -100.0   0.0
 1.0 1.0     FREE
 BEAMS:
 0 1
