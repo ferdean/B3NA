@@ -21,7 +21,6 @@ disp(solution)
 
 syms E I M P w(x)
 
-
 Dw      = diff(w, x);
 DDw     = diff(w, x, 2);
 
