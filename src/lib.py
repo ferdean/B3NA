@@ -723,7 +723,6 @@ def eigenvalue_method(Me,Num,Se):
     return eigfreq,eigvec
 
 def eigenvalue_method_exact(grid, E, I, mu, L, N):
-
     """
     Calculates the eigenvalues and Nth eigenmode of the cantilever beam problem exactly (simply supported beam will be added later)
 
@@ -813,3 +812,137 @@ def eigenvalue_method_dynamic(t_0,t_f,Nt,M,S,modes,Num):
         superposition_t[:,i] = superposition(t_0+i*dt)
     
     return superposition_t
+
+
+# +++++++++++++++++++++++++++++++++
+# +    2D FRAME AND STRUCTURES    +
+# +++++++++++++++++++++++++++++++++
+
+
+def getLongitudinalMatrices(grid, E, A):
+    """
+    Computes mass and stiffness matrices for a 1D problem in the longitudinal
+    axis (version of getMatrices()).
+    
+    In further versions this function will be merged with getMatrices().
+    """
+    
+    S_loc = E * A * np.array([[1, -1], [-1, 1]]) 
+    
+    nN    = grid.shape[0]  # Number of nodes
+    nE    = nN - 1         # Number of elements
+    nNe   = 2              # Number of nodes per element
+    nDOFn = 1              # Number of DOF per node       
+    nDOFg = nDOFn * nN     # Global number of DOF
+    nDOFe = nDOFn * nNe    # Number of DOF per element
+    
+    S = np.zeros((nDOFg, nDOFg))
+    # M = np.zeros((nDOFg, nDOFg))
+    
+    Ig = np.zeros((nDOFe**2 + (nE - 1)*nDOFe**2,))
+    Jg = np.zeros((nDOFe**2 + (nE - 1)*nDOFe**2,))
+    # Mg = np.zeros((nDOFe**2 + (nE - 1)*nDOFe**2,))
+    Sg = np.zeros((nDOFe**2 + (nE - 1)*nDOFe**2,))
+    
+    top = np.repeat(range(nN), 2)[1:-1]  # Topology matrix
+    top = top.reshape((-1, nNe))
+        
+    for idx in range(nE):
+        
+        e_k   = top[idx]
+        
+        # Matrix fast assembly [ref: F. Cuvelier, et al, arXiv preprint arXiv:1305.3122]     
+        t     = np.array(range(nDOFe))
+        Tt, T = np.meshgrid(t, t)
+        
+        ii  = T.flatten()
+        jj  = Tt.flatten()
+        kk  = np.array(range(nDOFe**2))
+        kkk = kk + nDOFe**2 * (idx)
+        
+        Ig[kkk] = e_k[ii]
+        Jg[kkk] = e_k[jj]
+        # Mg[kkk] = M_loc.flatten() 
+        Sg[kkk] = S_loc.flatten()
+    
+    # M = sp.sparse.csr_matrix((Mg, (Ig, Jg)), shape = (nDOFg, nDOFg))
+    S = sp.sparse.csr_matrix((Sg, (Ig, Jg)), shape = (nDOFg, nDOFg))
+       
+    return S
+
+
+def getLongitudinalDef(grid, E, A, f):
+    """
+    Returns the solution function in a longitudinal problem
+
+    Parameters
+    ----------
+    grid: {array}
+        Vector with gridpoints.
+    E: {function} or {scalar}
+        Young modulus [N/mm2]
+    A: {scalar}
+        Section area of the beam.
+    f: {array}
+        Applied force.
+
+    Returns
+    -------
+    u: {function}
+        Solution function.
+    """
+    
+    from scipy.interpolate import interp1d
+    
+    S = getLongitudinalMatrices(grid, E, A)
+    S = np.delete(np.delete(S.toarray(), 0, 1), 0, 0)    
+    S = sparse.csr_matrix(S)
+
+    nN = grid.size 
+    u  = sparse.linalg.spsolve(S, f)
+    
+    for idx in range(1, nN):
+        u[idx - 1] = u[idx - 1] + grid[idx]
+        
+    u = np.insert(u, 0, grid[0], axis=0)
+    
+    u = interp1d(grid, u)
+    
+    return u
+
+def rotateBeam(locDef, L, x0, theta):    
+    """
+    Returns the rotated solution function
+
+    Parameters
+    ----------
+    locDef: {tuple}
+        Contains the deformation functions in both directions.
+            * v(x): longitudinal deformation
+            * w(x): transversal deformation
+    L: {scalar}
+        Beam length.
+    x0: {array}
+        (x,y) position of the initial point.
+    theta: {scalar}
+        Rotation angle.
+
+    Returns
+    -------
+    rotbeam: {function}
+        Parametric representation of the solution.
+    """
+    v, w = locDef
+    R    = np.array([[np.cos(theta), - np.sin(theta)],
+                    [np.sin(theta),   np.cos(theta)]])
+
+    def rotbeam(x):
+        beta    = np.array([v(x) + x, w(x)])      
+        globDef = x0.reshape((-1,1)) + R @ beta
+        
+        return globDef
+    
+    return rotbeam
+
+
+
