@@ -112,3 +112,16 @@ ax.set_aspect('equal')
 
 ax.tick_params(direction= 'in', which= 'major', length= 4, bottom= True,
         top=False, right= False, left=True, width = 1)
+
+# %% Test 3
+
+E = 210
+A = 21.4e4
+f = np.array([1e6])
+
+grid = np.linspace(0, 1, 2)
+
+v = getLongitudinalDef(grid, E, A, f)
+
+plt.plot(grid, np.zeros(grid.shape))
+plt.scatter(v(grid), np.zeros(grid.shape))
