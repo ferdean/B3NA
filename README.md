@@ -72,16 +72,16 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
     - [x] Implement different BC (e. g. beam supported at both ends)
     - [x] Develop analytic solutions to design tests and validation cases
     - [x] Clean code, collect everything in packages/libraries and objects
-- [ ] Single beam, dynamic case
+- [x] Single beam, dynamic case
     - [x] Implement time-dependent solver (and repeat all points of static case)
     - [x] Test homogeneous case with a deformed initial condition
-    - [ ] Implement non-homogeneous cases (forced vibration)
+    - [x] Implement non-homogeneous cases (forced vibration)
     - [x] Develop visualization library + GUI supporting animations (Newmark-method)
     - [ ] (optional) Make forces and BCs interactive in the GUI
 - [x] Eigenvalue analysis
 - [ ] Vibration of frameworks of beams
     - [ ] Implementation of a 2D solver for frameworks
-    - [ ] Implementation of a 3D solver for framekorks
+    - [ ] (optional) Implementation of a 3D solver for framekorks
 - [ ] Documentation and cleaning
     - [ ] Oral presentation (10-20 min video)
     - [ ] Written report (around 20 pages)
