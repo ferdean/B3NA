@@ -63,7 +63,7 @@ plt.title("Comparison of the exact and numerical eigenfrequencies")
 plt.show()
 
 #Simulating superpositions of eigenvectors
-n_modes = np.array([7]) #The mode numbers that will be in the superpositions
+n_modes = np.array([1]) #The mode numbers that will be in the superpositions
 Num = np.max(n_modes)
 modes = np.zeros(np.max(n_modes))
 
