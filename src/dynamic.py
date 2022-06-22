@@ -129,6 +129,6 @@ def animation_frame(i):
     
     return fig
 
-ani = animation.FuncAnimation(fig, animation_frame, interval=10)
+ani = animation.FuncAnimation(fig, animation_frame,np.arange(0, 300), interval=10)
 
 ani.save('temporal_2.gif', writer='imagemagick', fps= 50)
