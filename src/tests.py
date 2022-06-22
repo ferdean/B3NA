@@ -183,7 +183,7 @@ def on_click(event):
 ### Plot definition
 
 x_plot = np.linspace(0, 2*np.pi, 500)
-y_plot = np.sin(x_plot) # Toy data
+y_plot = np.sin(x_plot) # Toy frame
 
 line, = ax.plot(x_plot, y_plot, color= '#808080')
 
