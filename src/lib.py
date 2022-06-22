@@ -5,7 +5,7 @@ Bending of Bernoulli beams project (numerical analysis) library of functions.
 =============================================================================
 """
 
-from types import NoneType
+# from types import NoneType
 import numpy as np
 from numpy import radians as rad
 import matplotlib.pyplot as plt
