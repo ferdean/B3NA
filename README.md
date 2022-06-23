@@ -79,10 +79,11 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
     - [x] Develop visualization library + GUI supporting animations (Newmark-method)
     - [ ] (optional) Make forces and BCs interactive in the GUI
 - [x] Eigenvalue analysis
-- [ ] Vibration of frameworks of beams
-    - [ ] Implementation of a 2D solver for frameworks
+- [x] Vibration of frameworks of beams
+    - [x] Implementation of a 2D solver for framework
     - [ ] (optional) Implementation of a 3D solver for framekorks
 - [ ] Documentation and cleaning
+    - [ ] Clean all the project and generate tests
     - [ ] Oral presentation (10-20 min video)
     - [ ] Written report (around 20 pages)
     - [x] Update README.md and repository documentation. 
