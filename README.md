@@ -36,7 +36,7 @@ V. Yelnyk - volodymyr.yelnyk@gmail.com
 
 ### Vibration of frameworks of beams: 
 
-*TO BE INCLUDED*
+![bridge_frame](https://user-images.githubusercontent.com/92535468/175333975-a598cd9b-d753-44df-b29b-b42e2312cef3.png)
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
