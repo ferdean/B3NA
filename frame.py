@@ -225,5 +225,5 @@ x = Structure(filename)
 x.assemble_matrices()
 
 x.solve_system()
-
-print(x.dof) # vector of u and v as in script page 14 
+x.plot()
+#print(x.dof) # vector of u and v as in script page 14 
