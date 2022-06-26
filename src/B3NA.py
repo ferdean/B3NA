@@ -343,7 +343,7 @@ class window:
         
         def animationFrame(i):
             beam = get_sol(self.mesh, self.dynamicSol[0:-2, i+1])    
-            line.set_ydata(beam(x_plot) * 1e3)  # update the data
+            line.set_ydata(beam(x_plot) * 1e3)  # update the frame
             text.set_text('t = %.2f s'%(self.time[i]))
             return line, text,
         

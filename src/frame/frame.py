@@ -1,7 +1,8 @@
-
 import numpy as np
 import matplotlib.pyplot as plt
-np.set_printoptions(precision=2)
+np.set_printoptions(precision=  2)
+
+
 class Structure:
     def __init__(self,filename):
         # copy all information about structure from a text file to an object 
@@ -56,7 +57,7 @@ class Structure:
                 beam_index +=1
         f.close()
     def plot(self):
-        # draws a frame with all nodes, beams and force 
+        # draws a frame with all nodes, beams and force
         plt.axes()
         for node in self.nodes :
             p = node.coordinates
@@ -210,15 +211,15 @@ class Beam:
     def __init__(self,index,nodes):
         self.index = index # number of this beam 
         self.nodes = nodes # reference to a "Node objects" that are at the ends of this beam
-        self.offset = nodes[0].coordinates # coordinates of the origin of this beam in global ref frame 
+        self.offset = nodes[0].coordinates # coordinates of the origin of this beam in global ref frame
         self.direction = (nodes[1].coordinates - nodes[0].coordinates) 
         self.length = np.sqrt(np.sum(self.direction**2)) # scalar length of the beam
-        self.direction = self.direction / self.length # unit vector in the direction of the beam in global frame 
+        self.direction = self.direction / self.length # unit vector in the direction of the beam in global frame
 
 
 
 
-filename = "frame1.txt"
+filename = "data/frame1.txt"
 
 x = Structure(filename)
 
