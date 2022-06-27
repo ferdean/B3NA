@@ -17,6 +17,7 @@ class Structure:
         self.E = 1.0
         self.I = 1.0
         self.A = 3.0
+        self.mu = 1.0
         mode = 0
         f = open(filename, "r") # read off nodes and beams from the file and store them in lists 
 
@@ -25,37 +26,80 @@ class Structure:
             if line[0] == "#":
                 continue
 
-            if line.strip() == "NODES:":
+            if line.strip() == "NODES":
                 mode = 1
                 node_index = 0
                 continue
 
-            if line.strip() == "BEAMS:":
+            if line.strip() == "EDGES":
                 mode = 2
                 beam_index = 0
+                continue
+
+            if line.strip() == "TYPE":
+                mode = 3
+                continue
+
+            if line.strip() == "PARAMETERS":
+                mode = 4
                 continue
 
             if mode == 1:
                 content = line.strip().split()
                 coord = np.array([float(content[0]), float(content[1])]) # x,y coordinates of a node in a global coordinate system
-                status = content[2] # get status of the node 
-                node = Node(node_index,coord,status) # create node object
-                if status == "FORCE": # if there is a force applied to the node, store it in the node object
-                    node.force = np.array([float(content[3]), float(content[4]),float(content[5])])
+                #status = content[2] # get status of the node 
+                node = Node(coord) # create node object
+                node.index = node_index
+                #if status == "FORCE": # if there is a force applied to the node, store it in the node object
+                #    node.force = np.array([float(content[3]), float(content[4]),float(content[5])])
                 self.nodes.append(node) # store this node in a list with all other nodes in the structure 
                 node_index +=1
-                print(node.coordinates,node.status,node.force)
+                print(node.coordinates)
 
             if mode == 2:
                 content = line.strip().split()
-                nodes = (self.nodes[int(content[0])], self.nodes[int(content[1])]) # 2 nodes that define a beam
-                beam = Beam(beam_index,nodes) # create beam object
+                print(content)
+                nodes = (self.nodes[int(content[0])-1], self.nodes[int(content[1])-1]) # 2 nodes that define a beam
+
+                beam = Beam(nodes) # create beam object
+                beam.index = beam_index # write index of the beam
                 nodes[0].beams.append(beam) # add a reference to this beam for every node that is a part of this beam 
                 nodes[1].beams.append(beam)
                 print(beam.index)
                 self.beams.append(beam) # store this beam in a list with all other beams in the structure 
                 beam_index +=1
+
+            if mode == 3:
+                content = line.strip().split()
+                node_index = int(content[0])-1
+                node_status = content[1]
+                if len(content) == 2:
+                    self.nodes[node_index].status = node_status
+                else:
+                    self.nodes[node_index].status = node_status
+                    a = [float(content[2].strip(']').strip('[')) , float(content[3].strip(']').strip('[')),float(content[4].strip('[').strip(']'))]
+                    a = np.array(a)
+                    self.nodes[node_index].force = a
+
+            if mode == 4:
+                content = line.strip().split()
+                identifier = content[0]
+                value = float(content[1])
+                if identifier == "E":
+                    self.E = value
+                elif identifier == "I":
+                    self.I = value
+                elif identifier == "A":
+                    self.A = value
+                elif identifier == "mu":
+                    self.mu = value
         f.close()
+        for node in self.nodes:
+            print(node.index, "  ",node.coordinates, " ", node.status," ",node.force," ",node.beams)
+        #for beam in self.beams:
+            #print(node.index, "  ",node.coordinates, " ", node.beams)
+
+
     def plot(self):
         # draws a frame with all nodes, beams and force
         plt.axes()
@@ -200,16 +244,16 @@ class Structure:
         return dof
 
 class Node:
-    def __init__(self,index,coord,status):
-        self.index = index
+    def __init__(self,coord):
+        self.index = None
         self.coordinates = coord # x,y coordinates in numpy array
-        self.status = status # type of joint defined by a string(or character)
+        self.status = None # type of joint defined by a string(or character)
         self.beams = [] # reference to all "Beam objects" that meet at this node 
         self.force = np.array([0.0,0.0,0.0]) # force that act on this node (if any)
 
 class Beam:
-    def __init__(self,index,nodes):
-        self.index = index # number of this beam 
+    def __init__(self,nodes):
+        self.index = None # number of this beam 
         self.nodes = nodes # reference to a "Node objects" that are at the ends of this beam
         self.offset = nodes[0].coordinates # coordinates of the origin of this beam in global ref frame
         self.direction = (nodes[1].coordinates - nodes[0].coordinates) 
@@ -219,12 +263,12 @@ class Beam:
 
 
 
-filename = "data/frame1.txt"
-
+#filename = "test.txt"
+filename = r'C:\Users\Volodymyr\Documents\Master_courses\project_numerical_analysis\beam-num-analysis\src\frame\test.txt'
 x = Structure(filename)
 
-x.assemble_matrices()
+#x.assemble_matrices()
 
-x.solve_system()
-x.plot()
+#x.solve_system()
+#x.plot()
 #print(x.dof) # vector of u and v as in script page 14 

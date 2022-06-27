@@ -130,7 +130,7 @@ parameters = parameters[0:-1]
 ############### Save file ##################
 save_file = input('Save to file in ../frame (.ne will be added): ')
 
-with open(f'../frame/{save_file}.ne', 'w') as f:
+with open(f'{save_file}.ne', 'w') as f:
     f.write('NODES\n')
     for coord in coords:
         f.write(f'{coord[0]} {coord[1]}\n')
