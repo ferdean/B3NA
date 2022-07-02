@@ -22,15 +22,15 @@ except:
     
 # %% Part 1.- create a mesh
 
-# name      = 'bridge'
+# name      = 'test'
 # directory = '../frames/' + name
 
-# mesher    = Mesher(directory, plotflag = True)
+# mesher    = Mesher(directory, plotflag = False)
 
 # %% Part 2.- Frame simulation
 
-name      = 'bridge_gud.txt'
-# name      = 'crane.txt'
+# name      = 'bridge_gud.txt'
+name      = 'test.txt'
 
 directory = '../frames/' + name
 
@@ -39,4 +39,4 @@ x         = Structure(directory)
 x.assemble_matrices()
 x.solve_system()
 
-x.plot_frame(scaler = 3E4)
+x.plot_frame(scaler = 5E2)

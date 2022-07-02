@@ -21,8 +21,8 @@ class Mesher:
         
         ax.plot(0, 0)
         
-        ax.set_xlim([0, 10])
-        ax.set_ylim([0, 10])
+        ax.set_xlim([0, 20])
+        ax.set_ylim([0, 20])
         ax.set_xlabel('x (m)')
         ax.set_ylabel('y (m)')
         
@@ -49,8 +49,8 @@ class Mesher:
             self.coords.append((ix, iy))
         
             ax.plot(ix, iy, marker = 'o', color = 'k')
-            ax.set_xlim([0, 10])
-            ax.set_ylim([0, 10])
+            ax.set_xlim([0, 20])
+            ax.set_ylim([0, 20])
             fig.canvas.draw()
             
         cid = fig.canvas.mpl_connect('button_press_event', onclick)
@@ -69,8 +69,8 @@ class Mesher:
         
         ax_edge.plot(x, y, "o", color="black")
         
-        ax_edge.set_xlim([0, 10])
-        ax_edge.set_ylim([0, 10])
+        ax_edge.set_xlim([0, 20])
+        ax_edge.set_ylim([0, 20])
         ax_edge.set_xlabel('x (m)')
         ax_edge.set_ylabel('y (m)')
 
@@ -99,8 +99,8 @@ class Mesher:
             if len(line_coords) == 2:
                 if sorted([x for x in node_indices]) not in [sorted(x) for x in self.edges]:
                     ax_edge.plot([line_coords[0][0], line_coords[1][0]], [line_coords[0][1],line_coords[1][1]], color="black")
-                    ax_edge.set_xlim([0, 10])
-                    ax_edge.set_ylim([0, 10])
+                    ax_edge.set_xlim([0, 20])
+                    ax_edge.set_ylim([0, 20])
                     
                     self.edges.append((node_indices[0],node_indices[1]))
                 
