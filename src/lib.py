@@ -20,7 +20,6 @@ import sympy as sm
 # ++++++++++++++++++++++++++++++++++++++++++++++
 # +             BASIS FUNCTIONS                +
 # ++++++++++++++++++++++++++++++++++++++++++++++
-
 def get_phi(grid, i, derivative = 0):
     """
     Computes the functions that form the ansatz space Vh, where Vh is a space 
