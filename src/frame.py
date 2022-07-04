@@ -50,6 +50,6 @@ directory = '../frames/' + name
 x         = Structure(directory)
 
 x.assemble_matrices()
-x.solve_dynamic(0.1,0,5,10)
+sol,t = x.solve_dynamic(0.1,0,50)
 
-x.plot_frame(scaler = 5E2)
+x.animate_frame()
