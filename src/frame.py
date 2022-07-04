@@ -30,13 +30,26 @@ except:
 # %% Part 2.- Frame simulation
 
 # name      = 'bridge_gud.txt'
-name      = 'test.txt'
+name      = 'crane.txt'
+
+directory = '../frames/' + name
+
+x         = Structure(directory)
+
+test,_,_ = x.assemble_matrices()
+
+x.solve_system()
+
+x.plot_frame(scaler = 5E2)
+
+# %%part 3 Dynamics
+name      = 'crane.txt'
 
 directory = '../frames/' + name
 
 x         = Structure(directory)
 
 x.assemble_matrices()
-x.solve_system()
+x.solve_dynamic(0.1,0,5,10)
 
 x.plot_frame(scaler = 5E2)

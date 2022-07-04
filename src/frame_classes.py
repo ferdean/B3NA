@@ -235,6 +235,7 @@ class Structure:
         self.E         = 210    # [N/mm2]
         self.I         = 3.3e7  # [mm4]
         self.A         = 22E4   # [mm2]
+        self.mu        = 0.1    # [N s^2/mm^4]
         
         mode          = 0
         
@@ -379,11 +380,20 @@ class Structure:
     def assemble_matrices(self):
         n_beams = len(self.beams)
         S = np.zeros((n_beams * 6, n_beams * 6))  # global stiffness matrix
+        M_tilde = np.zeros((n_beams * 6, n_beams*6))
+
+        M1_loc = np.array([[1/3, 1/6],[1/6, 1/3]])
+        M2_loc = np.array([[ 0.37142857,  0.05238095,  0.12857143, -0.03095238],
+                           [ 0.05238095,  0.00952381,  0.03095238, -0.00714286],
+                           [ 0.12857143,  0.03095238,  0.37142857, -0.05238095],
+                           [-0.03095238, -0.00714286, -0.05238095,  0.00952381]])
+
         S1_loc = np.array([[1.0, -1.0], [-1.0, 1.0]])
         S2_loc = np.array([[12., 6., -12., 6.],
                            [6., 4., -6., 2.],
                            [-12., -6., 12., -6.],
                            [6., 2., -6., 4.]])
+
         mode1 = np.array([[1, 0, 1, 0],
                           [0, 0, 0, 0],
                           [1, 0, 1, 0],
@@ -406,6 +416,9 @@ class Structure:
             h_array = (mode1 * h ** -3) + (mode2 * h ** -2) + (mode3 * h ** -1)
             S[global_index:global_index + 2, global_index:global_index + 2] = self.E * self.A * S1_loc / h
             S[global_index + 2:global_index + 6, global_index + 2:global_index + 6] = self.E * self.I * S2_loc * h_array
+
+            M_tilde[global_index:global_index + 2, global_index:global_index + 2] = self.mu * M1_loc * h
+            M_tilde[global_index + 2:global_index + 6, global_index + 2:global_index + 6] = self.mu *  M2_loc * h_array
 
         # loop through nodes and get constraints and forces
         RHS = np.zeros(n_beams * 6)
@@ -474,11 +487,15 @@ class Structure:
                     C = np.hstack([C, constrain_vectror])
 
         Se = np.vstack([np.hstack([S, C]), np.hstack([C.T, np.zeros((C.shape[1], C.shape[1]))])])
+
+        Me = np.vstack([np.hstack([M_tilde, 0*C]), np.hstack([0*C.T, np.zeros((C.shape[1], C.shape[1]))])])
         self.Se_matrix = Se
         self.S_matrix = S
         self.C_matrix = C
         self.RHS = RHS
-        return Se, RHS
+        self.Me_matrix = Me
+        self.M_matrix  = M_tilde
+        return M_tilde, Se, RHS
 
     def solve_system(self):  # when the matrices and RHS are constructed, steady solution can be obtained
         RHS2 = np.hstack([self.RHS, np.zeros(self.Se_matrix.shape[0] - len(self.RHS))])
@@ -486,6 +503,13 @@ class Structure:
         self.dof = dof
         return dof
 
+    def solve_dynamic(self,h,t0,T,index):
+        RHS2 = np.hstack([self.RHS, np.zeros(self.Se_matrix.shape[0] - len(self.RHS))])*0
+        init = self.solve_system()
+        init_tup = (init,0*init,0*init)
+        sol, _ = newmarkMethod(self.Me_matrix, self.Se_matrix, RHS2 , init_tup, h, t0, T)
+        self.dof = sol[:,index]
+        return sol[:,index]
 
 class Node:
     def __init__(self, index, coord, status):
