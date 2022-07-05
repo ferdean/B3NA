@@ -526,14 +526,15 @@ class Structure:
             nDOFn  = 3                # Number of DOF per node
             nDOFb  = nNb * nDOFn      # Number of DOF per beam
             
-            print(self.sol_dyn.shape)
+            print(i)
+            print(self.sol_dyn[:,i])
 
             for idxBeam in range(nB):
             
                 DOF = range(idxBeam * nDOFb, (idxBeam + 1) * nDOFb)
                 
-                sol_L = (self.self.sol_dyn[:,i])[DOF[0:2]]
-                sol_T = (self.self.sol_dyn[:,i])[DOF[2:]]
+                sol_L = (self.sol_dyn[:,i])[DOF[0:2]]
+                sol_T = (self.sol_dyn[:,i])[DOF[2:]]
                 
                 grid = np.array([0, self.beams[idxBeam].length]) # TO BE ERASED
                 
@@ -574,17 +575,23 @@ class Structure:
             
             return fig
 
-        ani = animation.FuncAnimation(fig, animation_frame, np.arange(0, self.sol_dyn.shape[1]), interval = 5, blit=False)
+        ani = animation.FuncAnimation(fig, animation_frame, np.arange(0, 100), interval = 5, blit=False)
         ani.save('temporal_2d.gif', writer='imagemagick', fps= 50)
         print("working")
         return ani
 
-    def eigen_freq_modes(self,Num,index):
-        eigenvalues, eigenmodes = eigenvalue_method(self.Me_matrix,Num,self.Se_matrix)
-        self.eigenvalues = eigenvalues
-        self.eigenmodes = eigenmodes
-        self.dof = eigenmodes[:,index-1]
-        return eigenvalues, eigenmodes
+    def eigen_freq_modes(self,Num,index,dynamic = False, t_0 = None, t_f = None, Nt = None, modes = None):
+
+        if dynamic: 
+            sol = eigenvalue_method_dynamic(t_0,t_f,Nt,self.Me_matrix,self.Se_matrix,modes,Num)
+            self.sol_dyn = sol
+            return sol
+        else: 
+            eigenvalues, eigenmodes = eigenvalue_method(self.Me_matrix,Num,self.Se_matrix)
+            self.eigenvalues = eigenvalues
+            self.eigenmodes = eigenmodes
+            self.dof = eigenmodes[:,index-1]
+            return eigenvalues, eigenmodes
 
 class Node:
     def __init__(self, index, coord, status):

@@ -43,7 +43,7 @@ x.solve_system()
 x.plot_frame(scaler = 1e4)
 
 # %%part 3 eigenmodes
-x.eigen_freq_modes(4,3)
+x.eigen_freq_modes(4,1)
 x.plot_frame(scaler = 1e4)
 
 # %%part 4 Dynamics
