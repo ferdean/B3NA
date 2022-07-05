@@ -40,16 +40,12 @@ test,_,_ = x.assemble_matrices()
 
 x.solve_system()
 
-x.plot_frame(scaler = 5E2)
+x.plot_frame(scaler = 1e4)
 
-# %%part 3 Dynamics
-name      = 'crane.txt'
+# %%part 3 eigenmodes
+x.eigen_freq_modes(4,3)
+x.plot_frame(scaler = 1e4)
 
-directory = '../frames/' + name
-
-x         = Structure(directory)
-
-x.assemble_matrices()
+# %%part 4 Dynamics
 sol,t = x.solve_dynamic(0.1,0,50)
-
 x.animate_frame()

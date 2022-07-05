@@ -579,6 +579,12 @@ class Structure:
         print("working")
         return ani
 
+    def eigen_freq_modes(self,Num,index):
+        eigenvalues, eigenmodes = eigenvalue_method(self.Me_matrix,Num,self.Se_matrix)
+        self.eigenvalues = eigenvalues
+        self.eigenmodes = eigenmodes
+        self.dof = eigenmodes[:,index-1]
+        return eigenvalues, eigenmodes
 
 class Node:
     def __init__(self, index, coord, status):
