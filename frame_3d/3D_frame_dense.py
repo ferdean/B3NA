@@ -399,7 +399,7 @@ class Beam:
 
 # little test section
 #filename = "test.txt"
-filename = "frame_3d/test_3d.txt"
+filename = "test_3d.txt"
 x = Structure(filename)
 x.assemble_matrices()
 x.solve_system()
