@@ -38,6 +38,10 @@ V. Yelnyk - volodymyr.yelnyk@gmail.com
 
 ![bridge_frame](https://user-images.githubusercontent.com/92535468/175333975-a598cd9b-d753-44df-b29b-b42e2312cef3.png)
 
+### 3D problems 
+![house_plot](https://user-images.githubusercontent.com/92535468/178120870-3b2baada-071b-4318-bf45-5a122dc6e41b.png)
+
+
 <p align="right">(<a href="#top">back to top</a>)</p>
 
 
@@ -81,9 +85,9 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
 - [x] Eigenvalue analysis
 - [x] Vibration of frameworks of beams
     - [x] Implementation of a 2D solver for framework
-    - [ ] (optional) Implementation of a 3D solver for framekorks
+    - [x] (optional) Implementation of a 3D solver for framekorks
 - [ ] Documentation and cleaning
-    - [ ] Clean all the project and generate tests
+    - [x] Clean all the project and generate tests
     - [ ] Oral presentation (10-20 min video)
     - [ ] Written report (around 20 pages)
     - [x] Update README.md and repository documentation. 
