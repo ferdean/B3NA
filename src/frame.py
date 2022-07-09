@@ -42,10 +42,16 @@ x.solve_system()
 
 x.plot_frame(scaler = 1e4)
 
-# %%part 3 eigenmodes
-x.eigen_freq_modes(4,1)
-x.plot_frame(scaler = 1e4)
+# %% Part 3.- Eigenmodes
+
+# x.eigen_freq_modes(4, 0)
+# x.plot_frame(scaler = 1e4)
+
 
 # %%part 4 Dynamics
-sol,t = x.solve_dynamic(0.1,0,50)
-x.animate_frame()
+scaler = 1e5
+
+lim = np.array([1.5, 6.5])
+
+sol, t = x.solve_dynamic(0.01, 0, 60)
+x.animate_frame(xlim = lim, ylim = lim)

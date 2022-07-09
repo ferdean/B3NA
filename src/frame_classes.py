@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 from lib import *
 import matplotlib.animation as animation
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import tkinter as Tk
 
 np.set_printoptions(precision = 2)
 
@@ -232,11 +234,11 @@ class Structure:
         self.M_matrix  = None   # TODO
         self.RHS       = None   # Right-hand side
         
-        self.dof       = 0      # Solved degrees of freedom
-        self.E         = 210    # [N/mm2]
-        self.I         = 3.3e7  # [mm4]
-        self.A         = 22E4   # [mm2]
-        self.mu        = 0.1    # [N s^2/mm^4]
+        self.dof       = 0         # Solved degrees of freedom
+        self.E         = 210       # [N/mm2]
+        self.I         = 3.3e7     # [mm4]
+        self.A         = 22E4      # [mm2]
+        self.mu        = 10        # [N s^2/mm^4]
         
         mode          = 0
         
@@ -279,33 +281,7 @@ class Structure:
                 beam_index += 1
                 
         f.close()
-          
-        
-    # def plot_mesh(self):
-    #     # draws a frame with all nodes, beams and force
-    #     plt.axes()
-    #     for node in self.nodes:
-    #         p = node.coordinates
-    #         index = node.index
-    #         circle = plt.Circle(p, radius=0.05, fc='r')
-    #         text = plt.text(p[0] - 0.02, p[1] - 0.02, str(index), fontsize=10, color='w')
-    #         plt.gca().add_patch(circle)
-
-    #     for beam in self.beams:
-    #         p1 = beam.nodes[0].coordinates  # [x,y] of first node
-    #         p2 = beam.nodes[1].coordinates  # [x,y] of second node
-    #         v = beam.direction * 0.1 * beam.length  # scaled beam direction
-    #         index = beam.index  # number of the beam
-    #         line = plt.Line2D((p1[0], p2[0]), (p1[1], p2[1]), lw=1)
-    #         arrow = plt.arrow(p1[0], p1[1], v[0], v[1], head_width=0.02, color='r')
-    #         text = plt.text((p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2, str(index), backgroundcolor='w', fontsize=7,
-    #                         color='b')
-    #         plt.gca().add_line(line)
-    #         plt.gca().add_patch(arrow)
-
-    #     plt.axis('scaled')
-    #     plt.show()
-        
+                  
    
     def plot_frame(self, scaler = 1e6):
         
@@ -511,76 +487,84 @@ class Structure:
         sol, t = newmarkMethod(self.Me_matrix, self.Se_matrix, RHS2 , init_tup, h, t0, T)
         self.sol_dyn = sol
         self.t = t
-        return sol,t
+        return sol, t
 
-    def animate_frame(self):
+    def animate_frame(self, xlim = np.array([0, 10]), ylim = np.array([0, 10])):
 
-        plt.rcParams['text.usetex'] = True
-        plt.rcParams.update({'font.size' : 9})
-        fig, ax = plt.subplots(figsize=(5, 3), dpi = 150)
-
-        def animation_frame(i): 
             nB     = len(self.beams)  # Number of beams
             nN     = len(self.nodes)  # Number of nodes
             nNb    = 2                # Number of nodes per beam
             nDOFn  = 3                # Number of DOF per node
             nDOFb  = nNb * nDOFn      # Number of DOF per beam
             
-            print(i)
-            print(self.sol_dyn[:,i])
-
-            for idxBeam in range(nB):
+            plt.rcParams['text.usetex'] = True
+            plt.rcParams.update({'font.size' : 9})
             
-                DOF = range(idxBeam * nDOFb, (idxBeam + 1) * nDOFb)
-                
-                sol_L = (self.sol_dyn[:,i])[DOF[0:2]]
-                sol_T = (self.sol_dyn[:,i])[DOF[2:]]
-                
-                grid = np.array([0, self.beams[idxBeam].length]) # TO BE ERASED
-                
-                v = interp1d(grid, sol_L * scaler) 
-                w = get_sol(grid, sol_T  * scaler)  
-                
-                x0    = self.beams[idxBeam].offset
-                
-                if abs(self.beams[idxBeam].direction[0]) > 1E-6:
-                    theta = np.arctan(self.beams[idxBeam].direction[1]/self.beams[idxBeam].direction[0]) 
+            ### Plot definition
+            self.fig = plt.Figure(figsize = (5, 3), dpi = 150)
+            
+            
+            ### Window definition
+            self.root = Tk.Tk()
+            self.root.title('Animation test')
+        
+            label = Tk.Label(self.root, text = "Animation test").grid(column = 0, row = 0)
+        
+            canvas = FigureCanvasTkAgg(self.fig, master = self.root)
+            canvas.get_tk_widget().grid(column=0,row=1)
 
-                else:
-                    theta = np.pi/2
-
-                if self.beams[idxBeam].direction[0] < 0:
-                    theta = theta + np.pi
+            canvas = FigureCanvasTkAgg(self.fig, master = self.root)
+            canvas.get_tk_widget().grid(column=0,row=1)
+            
+            ### Animation definition
+            self.ax = self.fig.add_subplot(111)            
+            
+            def animation_frame(i):
+                
+                self.ax.clear()
+                self.ax.set_ylim(ylim)
+                self.ax.set_xlim(xlim)
+                 
+                for idxBeam in range(nB):
+                
+                    DOF = range(idxBeam * nDOFb, (idxBeam + 1) * nDOFb)
                     
-                if abs((abs(self.beams[idxBeam].direction[1]) - 1)) < 1E-6 and self.beams[idxBeam].direction[1] < 0:
-                    theta = theta + np.pi
-                
-                self.beams[idxBeam].theta = theta    
-                
-                rotBeam  = rotateBeam((v, w), grid[-1], x0, theta)
-                original = rotateBeam((lambda x: x * 0, lambda x: x * 0), grid[-1], x0, theta)
+                    sol_L = (self.sol_dyn[:,i])[DOF[0:2]]
+                    sol_T = (self.sol_dyn[:,i])[DOF[2:]]
+                    
+                    grid = np.array([0, self.beams[idxBeam].length]) # TO BE ERASED
+                    
+                    v = interp1d(grid, sol_L * scaler) 
+                    w = get_sol(grid, sol_T  * scaler)  
+                    
+                    x0    = self.beams[idxBeam].offset
+                    
+                    if abs(self.beams[idxBeam].direction[0]) > 1E-6:
+                        theta = np.arctan(self.beams[idxBeam].direction[1]/self.beams[idxBeam].direction[0]) 
+        
+                    else:
+                        theta = np.pi/2
+        
+                    if self.beams[idxBeam].direction[0] < 0:
+                        theta = theta + np.pi
                         
-                x_plot = np.linspace(0, self.beams[idxBeam].length, 20)
-                
-                ax.plot(rotBeam(x_plot)[0, :],  rotBeam(x_plot)[1, :],  color = 'k')
-                ax.plot(original(x_plot)[0, :], original(x_plot)[1, :], color = 'gray', linestyle = '--')
-                
-            ax.set_xlabel('x direction (m)')
-            ax.set_ylabel('y direction (m)')
-            
-            ax.tick_params(direction= 'in', which= 'major', length= 4, bottom= True,
-                        top=True, right= False, left=True, width = 1)
-            
-            ax.set_title('(deformation scaler: %.2E)'%scaler, fontsize = 8)
-            
-            return fig
+                    if abs((abs(self.beams[idxBeam].direction[1]) - 1)) < 1E-6 and self.beams[idxBeam].direction[1] < 0:
+                        theta = theta + np.pi
+                    
+                    self.beams[idxBeam].theta = theta    
+                    
+                    rotBeam  = rotateBeam((v, w), grid[-1], x0, theta)
+                    original = rotateBeam((lambda x: x * 0, lambda x: x * 0), grid[-1], x0, theta)
+                             
+                    x_plot = np.linspace(0, self.beams[idxBeam].length, 20)
+                    
+                    self.ax.plot(rotBeam(x_plot)[0, :],  rotBeam(x_plot)[1, :],  color = 'k')
+                    self.ax.plot(original(x_plot)[0, :], original(x_plot)[1, :], color = 'gray', linestyle = '--')
 
-        ani = animation.FuncAnimation(fig, animation_frame, np.arange(0, 100), interval = 5, blit=False)
-        ani.save('temporal_2d.gif', writer='imagemagick', fps= 50)
-        print("working")
-        return ani
+            self.ani = animation.FuncAnimation(self.fig, animation_frame, np.arange(0, 200), interval = 200, blit= False)
+            self.root.mainloop()
 
-    def eigen_freq_modes(self,Num,index,dynamic = False, t_0 = None, t_f = None, Nt = None, modes = None):
+    def eigen_freq_modes(self, Num, index, dynamic = False, t_0 = None, t_f = None, Nt = None, modes = None):
 
         if dynamic: 
             sol = eigenvalue_method_dynamic(t_0,t_f,Nt,self.Me_matrix,self.Se_matrix,modes,Num)
