@@ -3,29 +3,31 @@ import matplotlib.pyplot as plt
 import scipy as sp 
 from scipy import sparse
 from scipy.sparse import linalg
-#np.set_printoptions(precision=  4)
-
 
 class Structure:
     def __init__(self,filename):
-        # copy all information about structure from a text file to an object 
         
-        self.nodes = []
-        self.beams = []
-        self.C_matrix = None # constraints 
-        self.S_matrix = None  # without constraints 
-        self.Se_matrix = None # with constraints 
-        self.M_matrix = None # to be done 
-        self.RHS = None # 
-        self.dof = 0 # solved degrees of freedom 
-        self.E = 1.0
-        self.I = 1.0
-        self.A = 1.0
-        self.J = 1.0
-        self.G = 1.0
-        self.mu = 1.0
+        self.nodes      = []
+        self.beams      = []
+        
+        self.C_matrix   = None # constraints 
+        self.S_matrix   = None # without constraints 
+        self.Se_matrix  = None # with constraints 
+        self.M_matrix   = None # to be done 
+        self.RHS        = None 
+        
+        self.dof        = 0 
+        self.E          = 1.0
+        self.I          = 1.0
+        self.A          = 1.0
+        self.J          = 1.0
+        self.G          = 1.0
+        self.mu         = 1.0
+       
         mode = 0
-        f = open(filename, "r") # read off nodes and beams from the file and store them in lists 
+        
+        ### Read off nodes and beams from the file and store them in lists 
+        f = open(filename, "r") 
 
         for line in f:
             
@@ -51,166 +53,263 @@ class Structure:
                 continue
 
             if mode == 1:
+                
                 content = line.strip().split()
-                coord = np.array([float(content[0]), float(content[1]), float(content[2])]) # x,y coordinates of a node in a global coordinate system
-                #status = content[2] # get status of the node 
-                node = Node(coord) # create node object
+                
+                ### (x,y) coordinates of a node in a global coordinate system
+                coord = np.array([float(content[0]), float(content[1]), float(content[2])])
+                
+                node = Node(coord) # Node object
                 node.index = node_index
-                #if status == "FORCE": # if there is a force applied to the node, store it in the node object
-                #    node.force = np.array([float(content[3]), float(content[4]),float(content[5])])
-                self.nodes.append(node) # store this node in a list with all other nodes in the structure 
+                
+                self.nodes.append(node) # Store this node in a list with all other nodes in the structure 
+                
                 node_index +=1
-                print(node.coordinates)
+                
+                # print(node.coordinates)
 
             if mode == 2:
+                
                 content = line.strip().split()
-                print(content)
-                nodes = (self.nodes[int(content[0])-1], self.nodes[int(content[1])-1]) # 2 nodes that define a beam
+                
+                # print(content)
+                
+                nodes = (self.nodes[int(content[0]) - 1], self.nodes[int(content[1]) - 1]) # 2 nodes that define a beam
 
-                beam = Beam(nodes) # create beam object
-                beam.index = beam_index # write index of the beam
-                nodes[0].beams.append(beam) # add a reference to this beam for every node that is a part of this beam 
+                beam = Beam(nodes)          # Create beam object
+                beam.index = beam_index     # Write index of the beam
+                
+                nodes[0].beams.append(beam) # Add a reference to this beam for every node that is a part of this beam 
                 nodes[1].beams.append(beam)
-                print(beam.index)
+                
+                # print(beam.index)
+                
                 self.beams.append(beam) # store this beam in a list with all other beams in the structure 
+                
                 beam_index +=1
 
             if mode == 3:
-                content = line.strip().split()
-                node_index = int(content[0])-1
+                
+                content     = line.strip().split()
+                node_index  = int(content[0]) - 1
                 node_status = content[1]
+                
                 self.nodes[node_index].status = node_status
-                print(content)
+                
+                # print(content)
+                
                 if len(content) > 2:
-                    a = np.array([[content[2],content[3],content[4]],[content[5],content[6],content[7]]])
-                    print(a)
+                    a = np.array([[content[2], content[3], content[4]], [content[5], content[6], content[7]]])
+                    
+                    # print(a)
+                    
                     self.nodes[node_index].force = a.astype(np.float)
 
             if mode == 4:
-                content = line.strip().split()
+                
+                content    = line.strip().split()
                 identifier = content[0]
-                value = float(content[1])
+                value      = float(content[1])
+                
                 if identifier == "E":
                     self.E = value
+                    
                 elif identifier == "I":
                     self.I = value
+                    
                 elif identifier == "A":
                     self.A = value
+                    
                 elif identifier == "mu":
                     self.mu = value
+                    
                 elif identifier == "G":
                     self.G = value
+                    
                 elif identifier == "J":
                     self.J = value
+                    
         f.close()
+        
         for node in self.nodes:
             print(node.index, "  ",node.coordinates, " ", node.status," ",node.force," ")
+            
         for beam in self.beams:
             print(beam.index, "  ",beam.offset, " ", )
 
     def plot(self):
-        # draws a frame with all nodes, beams and force
-        fig = plt.figure()
-        ax = fig.gca(projection='3d')
-
+        # Draws a frame with all nodes, beams and force
         
-
-
+        plt.rcParams['text.usetex'] = True
+        plt.rcParams.update({'font.size' : 9})
+        
+        fig = plt.figure(figsize = (8, 4), dpi = 150)
+        ax = fig.gca(projection='3d')
+        
         for node in self.nodes :
             if node.status == "FREE" :
-                color = 'g'
+                color = '#808080'
                 marker= 'o'
+                
             elif node.status == "FORCE" :
-                color = 'y'
-                marker= 'o'
-            elif node.status == "FIXED" :
                 color = 'r'
+                marker= 'o'
+                
+            elif node.status == "FIXED" :
+                color = 'k'
                 marker= 's'
 
             x,y,z = node.coordinates
             index = node.index
-            ax.scatter([x],[y],[z], marker=marker, color = color)
             
+            ax.scatter([x], [y], [z], marker = marker, color = color)
+            
+        ax.set_xlabel("x")
+        ax.set_ylabel("y")
+        ax.set_zlabel("z")
         
         for beam in self.beams :
-            x1,y1,z1 = beam.nodes[0].coordinates # [x,y] of first node 
-            x2,y2,z2 = beam.nodes[1].coordinates # [x,y] of second node
-            v = beam.direction * 0.1 *beam.length # scaled beam direction
-            index = beam.index # number of the beam
-            ax.plot([x1,x2],[y1,y2],[z1,z2],color = 'orange')
+            
+            x1,y1,z1 = beam.nodes[0].coordinates   # [x,y] of first node 
+            x2,y2,z2 = beam.nodes[1].coordinates   # [x,y] of second node
+            v = beam.direction * 0.1 *beam.length  # scaled beam direction
+            
+            index = beam.index # Number of the beam
+            
+            ax.plot([x1,x2],[y1,y2],[z1,z2],color = 'gray')
         
-        ax.legend()
+        ax.set_title("\\textbf{Simulated structure} \n Red: Force, Gray: Free, Black = Fixed")
         plt.show()
 
+
     def get_line(self,beam,n):
-        dof = self.dof[beam.index*12:12*beam.index+12]
-        offset = beam.offset
-        # generates a 3d curve in global ref frame 
-        u_0,u_L, v_0, v_L, w_0, wp_0, w_L, wp_L, l_0, lp_0, l_L, lp_L = dof
-        #print("dof: ",dof)
-        L = beam.length
-        t = np.linspace(0.0,L,n)
-        t_n = np.linspace(0.0,1.0,n) # normalized
-        v = v_0 + t * (v_L-v_0)/L
         
-        # basis functions at sampled points  
+        dof     = self.dof[beam.index*12:12*beam.index+12]
+        offset  = beam.offset
+        
+        # Generates a 3d curve in global ref frame 
+        u_0, u_L, v_0, v_L, w_0, wp_0, w_L, wp_L, l_0, lp_0, l_L, lp_L = dof
+        
+        L   = beam.length
+        t   = np.linspace(0.0, L, n)
+        t_n = np.linspace(0.0, 1.0, n) # Normalized
+        v   = v_0 + t * (v_L - v_0)/L
+        
+        # Basis functions at sampled points  
         phi1 = 1- 3 * t_n**2 + 2* t_n**3
         phi2 = t_n* (t_n-1)**2
         phi3 = 3*t_n**2 - 2*t_n**3
         phi4 = t_n**2 * (t_n-1)
+        
         x = t + v
         y = l_0*phi1 + lp_0*phi2 + l_L*phi3 +  lp_L*phi4
         z = w_0*phi1 + wp_0*phi2 + w_L*phi3 +  wp_L*phi4
+        
         angles = self.get_Euler_angles(beam)
-        R , _ = self.get_transformations(angles)
-        A = R @  np.vstack([x,y,z])
-        A = A + np.reshape(offset,(1,3)).T
+        R , _  = self.get_transformations(angles)
+        
+        A      = R @  np.vstack([x,y,z])
+        A     += np.reshape(offset,(1,3)).T
+        
         return  A
 
-    def plot_deformed(self):
-        # fing the anchor point
-        fig = plt.figure()
+
+    def plot_deformed(self, originalFlag = False):
+        
+        plt.rcParams['text.usetex'] = True
+        plt.rcParams.update({'font.size' : 9})
+        
+        fig = plt.figure(figsize = (8, 4), dpi = 150)
         ax = fig.gca(projection='3d')
+        
         ax.set_xlabel("x")
         ax.set_ylabel("y")
         ax.set_zlabel("z")
+        
+        if originalFlag:
+            for node in self.nodes :
+                if node.status == "FREE" :
+                    color = '#808080'
+                    marker= 'o'
+                    
+                elif node.status == "FORCE" :
+                    color = 'r'
+                    marker= 'o'
+                    
+                elif node.status == "FIXED" :
+                    color = 'k'
+                    marker= 's'
+    
+                x,y,z = node.coordinates
+                index = node.index
+                
+                ax.scatter([x], [y], [z], marker = marker, color = color)
+                     
         for beam in self.beams:
-            points = self.get_line(beam,10)
-            x,y,z = (points[0],points[1],points[2])
+            points = self.get_line(beam, 10)
+            
+            x, y, z = (points[0],points[1],points[2])
+            
             a = [beam.nodes[0].coordinates[0],beam.nodes[1].coordinates[0]]
             b = [beam.nodes[0].coordinates[1],beam.nodes[1].coordinates[1]]
             c = [beam.nodes[0].coordinates[2],beam.nodes[1].coordinates[2]]
-            ax.plot(a,b,c,color="orange",)
-            ax.plot(x,y,z,linestyle = "--")
-            ax.plot(x[:2],y[:2],z[:2])
+            
+            if originalFlag:
+                ax.plot(a, b, c, color = "gray", linestyle = "--")
+            
+            ax.plot(x, y, z, color = "k",    linestyle = "-", zorder = 10)
+            
+            ax.plot(x[:2],y[:2],z[:2], color = "#959595")
+            
+        ax.set_box_aspect(aspect = (1, 1, 2))  
+
+            
+        if originalFlag:    
+            ax.set_title("\\textbf{Simulated structure} \n Red: Force, Gray: Free, Black = Fixed")
+            
+        else: 
+            ax.set_title("\\textbf{Simulated structure}")
+            
         plt.show()
 
-    def is_origin(self,node,beam):
+
+    def is_origin(self, node, beam):
+        
         if beam.nodes[0] == node:
             return 1
+        
         elif beam.nodes[1] == node:
             return 2
+        
         else :
-            print("node doesnt belong to this beam")
+            print("Node doesnt belong to this beam")
             return 0
 
-    def get_Euler_angles(self,beam):
-        u = beam.direction
+    def get_Euler_angles(self, beam):
+        
+        u    = beam.direction
         roll = 0.0
+        
         if np.isclose(u[0], 0.0, rtol=1e-06) and  np.isclose(u[1], 0.0, rtol=1e-06):
             yaw = 0.0
+            
             if u[2] > 0.0:
                 pitch = -np.pi /2
+                
             else:
                 pitch = np.pi /2
+                
         else:
-            yaw = np.arctan2(u[1],u[0])
+            yaw   = np.arctan2(u[1], u[0])
             pitch = np.arcsin(-u[2])
+            
         return np.array([yaw,pitch,roll])
 
-    def get_transformations(self,angles):
-        #computes transformation matrix from local to global  coordinate frame and vise-versa based on the direction of the beam 
-        yaw,pitch,roll = angles[0],angles[1],angles[2]
+    def get_transformations(self, angles):
+        # Computes transformation matrix from local to global  coordinate frame 
+        # and vise-versa based on the direction of the beam 
+        
+        yaw, pitch, roll = angles[0], angles[1], angles[2]
   
         R_yaw = np.array([[np.cos(yaw),-np.sin(yaw), 0.0],
                           [np.sin(yaw), np.cos(yaw), 0.0],
@@ -225,9 +324,12 @@ class Structure:
                             [ 0.0 , np.sin(roll),  np.cos(roll)]])  
 
                         
-        R_g_l  = R_yaw @ R_pitch @  R_roll# from local to global
-        R_l_g = np.linalg.inv(R_roll) @ np.linalg.inv(R_pitch) @ np.linalg.inv(R_yaw)
-        return (R_g_l, R_l_g) # local-> global, global->local
+        R_g_l  = R_yaw @ R_pitch @  R_roll # From local to global
+        R_l_g  = np.linalg.inv(R_roll) @ np.linalg.inv(R_pitch) @ np.linalg.inv(R_yaw)
+        
+        return (R_g_l, R_l_g) # (local-> global, global->local)
+    
+    
 
     def assemble_matrices(self):
              
@@ -237,6 +339,7 @@ class Structure:
                           [  6. ,  4. , -6. ,  2.],
                           [-12. , -6. , 12. , -6.],
                           [  6. ,  2. , -6. ,  4.]])
+        
         mode1 = np.array([ [1,0,1,0],
                             [0,0,0,0],
                             [1,0,1,0],
@@ -252,23 +355,25 @@ class Structure:
                             [0,0,0,0],
                             [0,1,0,1] ]) 
 
-        #loop through beams and construct matrix S:
         for beam in self.beams:
+            
             global_index = beam.index*12
+            
             h = beam.length
             h_array = (mode1 * h**-3) +(mode2 * h**-2) +(mode3 * h**-1)
+            
             S_torsion = np.array([[1.0,-1.0],[-1.0,1.0]])  * self.G * self.J /h
             S_v = np.array([[1.0,-1.0],[-1.0,1.0]])  * self.E * self.A /h
             S_w = self.E * self.I * A_loc * h_array
             S_l = self.E * self.I * A_loc * h_array
+            
             S_local = sp.linalg.block_diag(S_torsion,S_v,S_w,S_l) # 12x12 local matrix corresponding to one element
             
             S[global_index:global_index+12,global_index:global_index+12] = S_local
             
-        #loop through nodes and get constraints and forces
         
         RHS = np.zeros(n_beams*12)
-        C = np.zeros((0,n_beams*12))
+        C   = np.zeros((0,n_beams*12))
 
         for node in self.nodes:
             if node.status == "FREE" or node.status == "FORCE":
@@ -297,8 +402,7 @@ class Structure:
                     RHS[index_1_w_prime] += M[1]# moment around y axis 
                     RHS[index_1_l_prime] += M[2]# moment around z axis 
                 
-                for beam in node.beams[1:]:
-                    
+                for beam in node.beams[1:]:        
                     Euler_angles2 = self.get_Euler_angles(beam)
                     R_g_l2 , R_l_g2 = self.get_transformations(Euler_angles2) # direct and inverse coordinate transformation matrices
                     local_index_2 = self.is_origin(node,beam) # 1 if origin, 2 if the other end 
@@ -370,10 +474,13 @@ class Structure:
         self.RHS = RHS
         return Se, RHS
 
-    def solve_system(self): # when the matrices and RHS are constructed, steady solution can be obtained 
+    def solve_system(self):
+        
         RHS2 = np.hstack([self.RHS,np.zeros(self.Se_matrix.shape[0]-len(self.RHS))])
-        dof = np.linalg.solve(self.Se_matrix,RHS2)
+        dof  = np.linalg.solve(self.Se_matrix,RHS2)
+        
         self.dof = dof
+        
         return dof
 
     
@@ -397,13 +504,14 @@ class Beam:
         self.angles = None
 
 
-# little test section
-#filename = "test.txt"
-filename = "test_3d.txt"
+# Little test section
+
+filename = "tower_simple.txt"
 x = Structure(filename)
+
 x.assemble_matrices()
 x.solve_system()
-print(x.dof)
+
 x.plot()
 x.plot_deformed()
-
+x.plot_deformed(originalFlag = True)
