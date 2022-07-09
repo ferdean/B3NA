@@ -45,7 +45,7 @@ V. Yelnyk - volodymyr.yelnyk@gmail.com
 <p align="right">(<a href="#top">back to top</a>)</p>
 
 
-## Usage and install
+## Usage and install (NOT UPDATED)
 
 0. Read the documentation and be aware of the [license terms](https://github.com/ferdean/beam-num-analysis/blob/main/LICENSE)
 1. Git-clone this repo and change directory 
