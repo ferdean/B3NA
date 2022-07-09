@@ -31,27 +31,29 @@ except:
 
 # name      = 'bridge_gud.txt'
 name      = 'crane.txt'
-
 directory = '../frames/' + name
 
 x         = Structure(directory)
 
-test,_,_ = x.assemble_matrices()
+x.E       = 10     
+x.I       = 1000    
+x.A       = 1
+x.mu      = 1
+
+_, _, _   = x.assemble_matrices()
 
 x.solve_system()
-
-x.plot_frame(scaler = 1e4)
+x.plot_frame(scaler = 1e-2)
 
 # %% Part 3.- Eigenmodes
 
 # x.eigen_freq_modes(4, 0)
 # x.plot_frame(scaler = 1e4)
 
+# %% Part 4.- Dynamics
 
-# %%part 4 Dynamics
-scaler = 1e5
-
-lim = np.array([1.5, 6.5])
+scaler = 5e-3
+lim    = np.array([1.5, 6.5])
 
 sol, t = x.solve_dynamic(0.01, 0, 60)
 x.animate_frame(xlim = lim, ylim = lim)
