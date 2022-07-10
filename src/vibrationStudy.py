@@ -62,8 +62,9 @@ plt.legend(loc = "upper left")
 plt.title("Comparison of the exact and numerical eigenfrequencies")
 plt.show()
 
+#%%
 #Simulating superpositions of eigenvectors
-n_modes = np.array([1]) #The mode numbers that will be in the superpositions
+n_modes = np.array([2,3]) #The mode numbers that will be in the superpositions
 Num = np.max(n_modes)
 modes = np.zeros(np.max(n_modes))
 
@@ -75,9 +76,6 @@ t_f = 10000
 Nt = 1000
 
 superposition_dynamic = eigenvalue_method_dynamic(t_0,t_f,Nt,Me,Se,modes,Num)
-
-#%%
-### Put variables here:
     
 sol = superposition_dynamic
 ylim = (-10, 10)
@@ -122,3 +120,4 @@ ani = animation.FuncAnimation(fig, animate, np.arange(0, sol.shape[1]), interval
 
 ### Main loop
 root.mainloop()
+# %%

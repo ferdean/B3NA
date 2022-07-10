@@ -44,12 +44,20 @@ x.plot_frame(scaler = 1e4)
 
 # %% Part 3.- Eigenmodes
 
-# x.eigen_freq_modes(4, 0)
-# x.plot_frame(scaler = 1e4)
+x.eigen_freq_modes(4, 0)
+x.plot_frame(scaler = 1e4)
 
+# %%part 4 Dynamics Eigenmodes
+scaler = 1e4
+
+lim = np.array([1.5, 6.5])
+
+sol = x.eigen_freq_modes(4, 0, True, 0, 1, 100, np.array([2]))
+
+x.animate_frame(xlim = lim, ylim = lim)
 
 # %%part 4 Dynamics
-scaler = 1e5
+scaler = 1e4
 
 lim = np.array([1.5, 6.5])
 
