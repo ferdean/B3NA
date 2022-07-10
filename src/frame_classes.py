@@ -235,10 +235,10 @@ class Structure:
         self.RHS       = None   # Right-hand side
         
         self.dof       = 0         # Solved degrees of freedom
-        self.E         = 210       # [N/mm2]
-        self.I         = 3.3e7     # [mm4]
-        self.A         = 22E4      # [mm2]
-        self.mu        = 10        # [N s^2/mm^4]
+        self.E         = 210      # [N/mm2]
+        self.I         = 3.3E7    # [mm4]
+        self.A         = 22E4     # [mm2]
+        self.mu        = 0.1      # [N s^2/mm^4]
         
         mode          = 0
         
@@ -532,7 +532,7 @@ class Structure:
                     sol_L = (self.sol_dyn[:,i])[DOF[0:2]]
                     sol_T = (self.sol_dyn[:,i])[DOF[2:]]
                     
-                    grid = np.array([0, self.beams[idxBeam].length]) # TO BE ERASED
+                    grid = np.array([0, self.beams[idxBeam].length]) 
                     
                     v = interp1d(grid, sol_L * scaler) 
                     w = get_sol(grid, sol_T  * scaler)  
@@ -561,7 +561,7 @@ class Structure:
                     self.ax.plot(rotBeam(x_plot)[0, :],  rotBeam(x_plot)[1, :],  color = 'k')
                     self.ax.plot(original(x_plot)[0, :], original(x_plot)[1, :], color = 'gray', linestyle = '--')
 
-            self.ani = animation.FuncAnimation(self.fig, animation_frame, np.arange(0, 200), interval = 200, blit= False)
+            self.ani = animation.FuncAnimation(self.fig, animation_frame, np.arange(0, 200), interval = 10, blit= False)
             self.root.mainloop()
 
     def eigen_freq_modes(self, Num, index, dynamic = False, t_0 = None, t_f = None, Nt = None, modes = None):
