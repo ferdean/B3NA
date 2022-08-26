@@ -108,6 +108,7 @@ class Structure:
         for beam in self.beams:
             print(beam.index, "  ",beam.offset, " ", )
 
+
     def plot(self):
         # draws a frame with all nodes, beams and force
         fig = plt.figure()
@@ -141,6 +142,7 @@ class Structure:
         
         ax.legend()
         plt.show()
+
 
     def get_line(self,beam,n):
         dof = self.dof[beam.index*12:12*beam.index+12]
@@ -228,6 +230,22 @@ class Structure:
         R_g_l  = R_yaw @ R_pitch @  R_roll# from local to global
         R_l_g = np.linalg.inv(R_roll) @ np.linalg.inv(R_pitch) @ np.linalg.inv(R_yaw)
         return (R_g_l, R_l_g) # local-> global, global->local
+
+
+
+    def get_perturbation_derivatives(self,beam1,beam2,vec):
+        derivatives = []
+        h = 10**-8 # step size for central difference 
+        for i in range(6):
+            a0 = np.zeros(6)
+            a1 = np.zeros(6)
+            a1[i] = h
+            a2 = np.zeros(6)
+            a2[i] = -h
+            #print("a1:  ",a1)
+            d = (self.angle_constraint_function(beam1,beam2,vec,a1) - self.angle_constraint_function(beam1,beam2,vec,a0))/(h)
+            derivatives.append(d)
+        return np.array(derivatives)
 
     def assemble_matrices(self):
              
@@ -397,13 +415,16 @@ class Beam:
         self.angles = None
 
 
-# little test section
+
 #filename = "test.txt"
-filename = "frame_3d/test_3d.txt"
+filename = r'C:\Users\Volodymyr\Documents\Master_courses\project_numerical_analysis\beam-num-analysis\src\frame\test_3d.txt'
 x = Structure(filename)
+
 x.assemble_matrices()
+
 x.solve_system()
 print(x.dof)
+#x.get_line(0,x.beams[0],10)
 x.plot()
 x.plot_deformed()
-
+#print(x.dof) # vector of u and v as in script page 14 
