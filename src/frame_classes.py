@@ -2,6 +2,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 from lib import *
+import matplotlib.animation as animation
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import tkinter as Tk
 
 np.set_printoptions(precision = 2)
 
@@ -231,10 +234,11 @@ class Structure:
         self.M_matrix  = None   # TODO
         self.RHS       = None   # Right-hand side
         
-        self.dof       = 0      # Solved degrees of freedom
-        self.E         = 210    # [N/mm2]
-        self.I         = 3.3e7  # [mm4]
-        self.A         = 22E4   # [mm2]
+        self.dof       = 0         # Solved degrees of freedom
+        self.E         = 210      # [N/mm2]
+        self.I         = 3.3E7    # [mm4]
+        self.A         = 22E4     # [mm2]
+        self.mu        = 0.1      # [N s^2/mm^4]
         
         mode          = 0
         
@@ -277,33 +281,7 @@ class Structure:
                 beam_index += 1
                 
         f.close()
-          
-        
-    # def plot_mesh(self):
-    #     # draws a frame with all nodes, beams and force
-    #     plt.axes()
-    #     for node in self.nodes:
-    #         p = node.coordinates
-    #         index = node.index
-    #         circle = plt.Circle(p, radius=0.05, fc='r')
-    #         text = plt.text(p[0] - 0.02, p[1] - 0.02, str(index), fontsize=10, color='w')
-    #         plt.gca().add_patch(circle)
-
-    #     for beam in self.beams:
-    #         p1 = beam.nodes[0].coordinates  # [x,y] of first node
-    #         p2 = beam.nodes[1].coordinates  # [x,y] of second node
-    #         v = beam.direction * 0.1 * beam.length  # scaled beam direction
-    #         index = beam.index  # number of the beam
-    #         line = plt.Line2D((p1[0], p2[0]), (p1[1], p2[1]), lw=1)
-    #         arrow = plt.arrow(p1[0], p1[1], v[0], v[1], head_width=0.02, color='r')
-    #         text = plt.text((p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2, str(index), backgroundcolor='w', fontsize=7,
-    #                         color='b')
-    #         plt.gca().add_line(line)
-    #         plt.gca().add_patch(arrow)
-
-    #     plt.axis('scaled')
-    #     plt.show()
-        
+                  
    
     def plot_frame(self, scaler = 1e6):
         
@@ -379,11 +357,20 @@ class Structure:
     def assemble_matrices(self):
         n_beams = len(self.beams)
         S = np.zeros((n_beams * 6, n_beams * 6))  # global stiffness matrix
+        M_tilde = np.zeros((n_beams * 6, n_beams*6))
+
+        M1_loc = np.array([[1/3, 1/6],[1/6, 1/3]])
+        M2_loc = np.array([[ 0.37142857,  0.05238095,  0.12857143, -0.03095238],
+                           [ 0.05238095,  0.00952381,  0.03095238, -0.00714286],
+                           [ 0.12857143,  0.03095238,  0.37142857, -0.05238095],
+                           [-0.03095238, -0.00714286, -0.05238095,  0.00952381]])
+
         S1_loc = np.array([[1.0, -1.0], [-1.0, 1.0]])
         S2_loc = np.array([[12., 6., -12., 6.],
                            [6., 4., -6., 2.],
                            [-12., -6., 12., -6.],
                            [6., 2., -6., 4.]])
+
         mode1 = np.array([[1, 0, 1, 0],
                           [0, 0, 0, 0],
                           [1, 0, 1, 0],
@@ -406,6 +393,9 @@ class Structure:
             h_array = (mode1 * h ** -3) + (mode2 * h ** -2) + (mode3 * h ** -1)
             S[global_index:global_index + 2, global_index:global_index + 2] = self.E * self.A * S1_loc / h
             S[global_index + 2:global_index + 6, global_index + 2:global_index + 6] = self.E * self.I * S2_loc * h_array
+
+            M_tilde[global_index:global_index + 2, global_index:global_index + 2] = self.mu * M1_loc * h
+            M_tilde[global_index + 2:global_index + 6, global_index + 2:global_index + 6] = self.mu *  M2_loc * h_array
 
         # loop through nodes and get constraints and forces
         RHS = np.zeros(n_beams * 6)
@@ -474,11 +464,15 @@ class Structure:
                     C = np.hstack([C, constrain_vectror])
 
         Se = np.vstack([np.hstack([S, C]), np.hstack([C.T, np.zeros((C.shape[1], C.shape[1]))])])
+
+        Me = np.vstack([np.hstack([M_tilde, 0*C]), np.hstack([0*C.T, np.zeros((C.shape[1], C.shape[1]))])])
         self.Se_matrix = Se
         self.S_matrix = S
         self.C_matrix = C
         self.RHS = RHS
-        return Se, RHS
+        self.Me_matrix = Me
+        self.M_matrix  = M_tilde
+        return M_tilde, Se, RHS
 
     def solve_system(self):  # when the matrices and RHS are constructed, steady solution can be obtained
         RHS2 = np.hstack([self.RHS, np.zeros(self.Se_matrix.shape[0] - len(self.RHS))])
@@ -486,6 +480,102 @@ class Structure:
         self.dof = dof
         return dof
 
+    def solve_dynamic(self,h,t0,T):
+        RHS2 = np.hstack([self.RHS, np.zeros(self.Se_matrix.shape[0] - len(self.RHS))])*0
+        init = self.solve_system()
+        init_tup = (init,0*init,0*init)
+        sol, t = newmarkMethod(self.Me_matrix, self.Se_matrix, RHS2 , init_tup, h, t0, T)
+        self.sol_dyn = sol
+        self.t = t
+        return sol, t
+
+    def animate_frame(self, xlim = np.array([0, 10]), ylim = np.array([0, 10])):
+
+            nB     = len(self.beams)  # Number of beams
+            nN     = len(self.nodes)  # Number of nodes
+            nNb    = 2                # Number of nodes per beam
+            nDOFn  = 3                # Number of DOF per node
+            nDOFb  = nNb * nDOFn      # Number of DOF per beam
+            
+            plt.rcParams['text.usetex'] = True
+            plt.rcParams.update({'font.size' : 9})
+            
+            ### Plot definition
+            self.fig = plt.Figure(figsize = (5, 3), dpi = 150)
+            
+            
+            ### Window definition
+            self.root = Tk.Tk()
+            self.root.title('Animation test')
+        
+            label = Tk.Label(self.root, text = "Animation test").grid(column = 0, row = 0)
+        
+            canvas = FigureCanvasTkAgg(self.fig, master = self.root)
+            canvas.get_tk_widget().grid(column=0,row=1)
+
+            canvas = FigureCanvasTkAgg(self.fig, master = self.root)
+            canvas.get_tk_widget().grid(column=0,row=1)
+            
+            ### Animation definition
+            self.ax = self.fig.add_subplot(111)            
+            
+            def animation_frame(i):
+                
+                self.ax.clear()
+                self.ax.set_ylim(ylim)
+                self.ax.set_xlim(xlim)
+                 
+                for idxBeam in range(nB):
+                
+                    DOF = range(idxBeam * nDOFb, (idxBeam + 1) * nDOFb)
+                    
+                    sol_L = (self.sol_dyn[:,i])[DOF[0:2]]
+                    sol_T = (self.sol_dyn[:,i])[DOF[2:]]
+                    
+                    grid = np.array([0, self.beams[idxBeam].length]) 
+                    
+                    v = interp1d(grid, sol_L * scaler) 
+                    w = get_sol(grid, sol_T  * scaler)  
+                    
+                    x0    = self.beams[idxBeam].offset
+                    
+                    if abs(self.beams[idxBeam].direction[0]) > 1E-6:
+                        theta = np.arctan(self.beams[idxBeam].direction[1]/self.beams[idxBeam].direction[0]) 
+        
+                    else:
+                        theta = np.pi/2
+        
+                    if self.beams[idxBeam].direction[0] < 0:
+                        theta = theta + np.pi
+                        
+                    if abs((abs(self.beams[idxBeam].direction[1]) - 1)) < 1E-6 and self.beams[idxBeam].direction[1] < 0:
+                        theta = theta + np.pi
+                    
+                    self.beams[idxBeam].theta = theta    
+                    
+                    rotBeam  = rotateBeam((v, w), grid[-1], x0, theta)
+                    original = rotateBeam((lambda x: x * 0, lambda x: x * 0), grid[-1], x0, theta)
+                             
+                    x_plot = np.linspace(0, self.beams[idxBeam].length, 20)
+                    
+                    self.ax.plot(rotBeam(x_plot)[0, :],  rotBeam(x_plot)[1, :],  color = 'k')
+                    self.ax.plot(original(x_plot)[0, :], original(x_plot)[1, :], color = 'gray', linestyle = '--')
+
+            self.ani = animation.FuncAnimation(self.fig, animation_frame, np.arange(0, 200), interval = 10, blit= False)
+            self.root.mainloop()
+
+    def eigen_freq_modes(self, Num, index, dynamic = False, t_0 = None, t_f = None, Nt = None, modes = None):
+
+        if dynamic: 
+            sol = eigenvalue_method_dynamic(t_0,t_f,Nt,self.Me_matrix,self.Se_matrix,modes,Num)
+            self.sol_dyn = sol
+            return sol
+        else: 
+            eigenvalues, eigenmodes = eigenvalue_method(self.Me_matrix,Num,self.Se_matrix)
+            self.eigenvalues = eigenvalues
+            self.eigenmodes = eigenmodes
+            self.dof = eigenmodes[:,index-1]
+            return eigenvalues, eigenmodes
 
 class Node:
     def __init__(self, index, coord, status):
