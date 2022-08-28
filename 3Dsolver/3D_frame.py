@@ -98,8 +98,8 @@ class Structure:
                             a = np.array([[content[2],content[3],content[4]],[content[5],content[6],content[7]]])
                             print(a)
                             node.force = a.astype(np.float)
-                        print("node type")
-                        print(node.status)
+                        #print("node type")
+                        #print(node.status)
                         break
                 
                 
@@ -121,10 +121,10 @@ class Structure:
                 elif identifier == "J":
                     self.J = value
         f.close()
-        for node in self.nodes:
-            print(node.index, "  ",node.coordinates, " ", node.status," ",node.force," ")
-        for beam in self.beams:
-            print(beam.index, "  ",beam.offset, " ", )
+        #for node in self.nodes:
+        #    print(node.index, "  ",node.coordinates, " ", node.status," ",node.force," ")
+        #for beam in self.beams:
+        #    print(beam.index, "  ",beam.offset, " ", )
 
 
     def plot(self):
@@ -154,7 +154,7 @@ class Structure:
             
 
             ax.scatter([x],[y],[z], marker=marker,color=color)
-            #ax.text(x, y, z, str(index), None)
+            ax.text(x, y, z, str(index), None)
              
         for beam in self.beams :
             x1,y1,z1 = beam.nodes[0].coordinates # [x,y] of first node 
@@ -166,53 +166,113 @@ class Structure:
         ax.legend()
         plt.show()
 
+    def get_Euler_angles(self, beam):
+        
+        u    = beam.direction
+        roll = 0.0
+        
+        if np.isclose(u[0], 0.0, rtol=1e-06) and  np.isclose(u[1], 0.0, rtol=1e-06):
+            yaw = 0.0
+            
+            if u[2] > 0.0:
+                pitch = -np.pi /2
+                
+            else:
+                pitch = np.pi /2
+                
+        else:
+            yaw   = np.arctan2(u[1], u[0])
+            pitch = np.arcsin(-u[2])
+            
+        return np.array([yaw,pitch,roll])
 
     def get_line(self,beam,n):
-        dof = self.dof[beam.index:beam.index+12]
-        offset = beam.offset
-        # generates a 3d curve in global ref frame 
-        u_0,u_L, v_0, v_L, w_0, wp_0, w_L, wp_L, l_0, lp_0, l_L, lp_L = dof
-        #print("dof: ",dof)
-        L = beam.length
-        t = np.linspace(0.0,L,n)
-        t_n = np.linspace(0.0,1.0,n) # normalized
-        v = v_0 + t * (v_L-v_0)/L
         
-        # basis functions at sampled points  
+        dof     = self.dof[beam.index*12:12*beam.index+12]
+        offset  = beam.offset
+        
+        # Generates a 3d curve in global ref frame 
+        u_0, u_L, v_0, v_L, w_0, wp_0, w_L, wp_L, l_0, lp_0, l_L, lp_L = dof
+        
+        L   = beam.length
+        t   = np.linspace(0.0, L, n)
+        t_n = np.linspace(0.0, 1.0, n) # Normalized
+        v   = v_0 + t * (v_L - v_0)/L
+        
+        # Basis functions at sampled points  
         phi1 = 1- 3 * t_n**2 + 2* t_n**3
         phi2 = t_n* (t_n-1)**2
         phi3 = 3*t_n**2 - 2*t_n**3
         phi4 = t_n**2 * (t_n-1)
+        
         x = t + v
         y = l_0*phi1 + lp_0*phi2 + l_L*phi3 +  lp_L*phi4
         z = w_0*phi1 + wp_0*phi2 + w_L*phi3 +  wp_L*phi4
-        print("beam index:  ",beam.index)
-        print("beam offset:  ",np.reshape(offset,(1,3)).T)
-        R , _ = self.get_transformations(beam.direction)
-        A = R @  np.vstack([x,y,z])
-        A = A + np.reshape(offset,(1,3)).T
-        #print("AAAAAAAA", np.vstack([x,y,z]))
-        #print(y)
-        #print(z)
-
+        
+        angles = self.get_Euler_angles(beam)
+        R , _  = self.get_transformations(beam.direction)
+        
+        A      = R @  np.vstack([x,y,z])
+        A     += np.reshape(offset,(1,3)).T
+        
         return  A
 
-    def plot_deformed(self):
-        # fing the anchor point
-        fig = plt.figure()
+    def plot_deformed(self, originalFlag = False):
+        
+        plt.rcParams['text.usetex'] = True
+        plt.rcParams.update({'font.size' : 9})
+        
+        fig = plt.figure(figsize = (8, 4), dpi = 150)
         ax = fig.gca(projection='3d')
+        
         ax.set_xlabel("x")
         ax.set_ylabel("y")
         ax.set_zlabel("z")
-        new_node_coord = []
-        node_indecies = []
+        
+        if originalFlag:
+            for node in self.nodes :
+                if node.status == "FREE" :
+                    color = '#808080'
+                    marker= 'o'
+                    
+                elif node.status == "FORCE" :
+                    color = 'r'
+                    marker= 'o'
+                    
+                elif node.status == "FIXED" :
+                    color = 'k'
+                    marker= 's'
+    
+                x,y,z = node.coordinates
+                index = node.index
+                
+                ax.scatter([x], [y], [z], marker = marker, color = color)
+                     
         for beam in self.beams:
-            points = self.get_line(beam,10)
-            x,y,z = (points[0],points[1],points[2])
-            #node_indecies.append(beam.nodes.index[0])
-            #node_indecies.append(beam.nodes.index[1])
-            ax.plot(x,y,z)
-            ax.plot(x[:2],y[:2],z[:2])
+            points = self.get_line(beam, 10)
+            #print(points)
+            x, y, z = (points[0],points[1],points[2])
+            
+            a = [beam.nodes[0].coordinates[0],beam.nodes[1].coordinates[0]]
+            b = [beam.nodes[0].coordinates[1],beam.nodes[1].coordinates[1]]
+            c = [beam.nodes[0].coordinates[2],beam.nodes[1].coordinates[2]]
+            
+            if originalFlag:
+                ax.plot(a, b, c, color = "gray", linestyle = "--")
+            
+            ax.plot(x, y, z, color = "k",    linestyle = "-", zorder = 10)
+            
+            ax.plot(x[:2],y[:2],z[:2], color = "#959595")
+            
+        ax.set_box_aspect(aspect = (1, 1, 1))  
+
+            
+        if originalFlag:    
+            ax.set_title("\\textbf{Simulated structure} \n Red: Force, Gray: Free, Black = Fixed")
+            
+        else: 
+            ax.set_title("\\textbf{Simulated structure}")
+            
         plt.show()
 
     def is_origin(self,node,beam):
@@ -304,7 +364,7 @@ class Structure:
             if node.status == "FREE" or node.status == "FORCE":
                 
                 anchor_beam = node.beams[0] # beam to which all other beams in this node will be pairwise attached
-                print("DIRECTION:", anchor_beam.direction)
+                #print("DIRECTION:", anchor_beam.direction)
                 R_g_l1 , R_l_g1 = self.get_transformations(anchor_beam.direction) # direct and inverse coordinate transformation matrices
                 local_index_1 = self.is_origin(node,anchor_beam) # 1 if origin, 2 if the other end 
                 global_index_1 = anchor_beam.index*12 # where dof of this vector are located in the global dof vector (every beam has 6 dof)
@@ -349,26 +409,18 @@ class Structure:
                     constrain_vectror[:,index_2_w] = -R_g_l2[:,2]
 
                     # angle constraint 
-                    angle_constraint = sp.sparse.lil_matrix((2,12*n_beams), dtype= np.float64)
+                    angle_constraint = sp.sparse.lil_matrix((3,12*n_beams), dtype= np.float64)
 
-                    angle_constraint[0,index_1_l_prime] = np.dot(R_g_l2[:,0],R_g_l1[:,1])
-                    angle_constraint[0,index_1_w_prime] = np.dot(R_g_l2[:,0],R_g_l1[:,2])
-                    angle_constraint[0,index_2_l_prime] = np.dot(R_g_l2[:,1],R_g_l1[:,0])
-                    angle_constraint[0,index_2_w_prime] = np.dot(R_g_l2[:,2],R_g_l1[:,0])
+                    angle_constraint[:,index_1_u]        =  R_g_l1[:,0]
+                    angle_constraint[:,index_1_w_prime]  = -R_g_l1[:,1]
+                    angle_constraint[:,index_1_l_prime]  =  R_g_l1[:,2]
 
-                    angle_constraint[1,index_1_l_prime] = -np.dot(R_g_l2[:,1],R_g_l1[:,0])
-                    angle_constraint[1,index_1_u]       = np.dot(R_g_l2[:,1],R_g_l1[:,2])
-                    angle_constraint[1,index_2_l_prime] = -np.dot(R_g_l2[:,0],R_g_l1[:,1])
-                    angle_constraint[1,index_2_u]       = np.dot(R_g_l2[:,2],R_g_l1[:,1])
-
-                    # maybe this one is redundant 
-                    #angle_constraint[2,index_1_w_prime] = -np.dot(R_g_l2[:,2],R_g_l1[:,0])
-                    #angle_constraint[2,index_1_u]       = -np.dot(R_g_l2[:,2],R_g_l1[:,1])
-                    #angle_constraint[2,index_2_w_prime] = -np.dot(R_g_l2[:,0],R_g_l1[:,2])
-                    #angle_constraint[2,index_2_u]       = -np.dot(R_g_l2[:,1],R_g_l1[:,2])
+                    angle_constraint[:,index_2_u]        = -R_g_l2[:,0]
+                    angle_constraint[:,index_2_w_prime]  =  R_g_l2[:,1]
+                    angle_constraint[:,index_2_l_prime]  = -R_g_l2[:,2]
 
 
-                    C = sp.sparse.vstack([C,constrain_vectror])#,angle_constraint
+                    C = sp.sparse.vstack([C,constrain_vectror,angle_constraint])
                     
 
             elif node.status == "FIXED":
@@ -390,18 +442,19 @@ class Structure:
                     c_vec[4,index_l_prime] = 1.0
                     c_vec[5,index_u] = 1.0
                     C = sp.sparse.vstack([C,c_vec])
-        print("C size",C.shape)
-        print("C rank: ",np.linalg.matrix_rank(C.toarray()))
+        #print("C size",C.shape)
+        #print("C rank: ",np.linalg.matrix_rank(C.toarray()))
         nc = C.shape[0]
 
         Se = sp.sparse.hstack([sp.sparse.vstack([S,C]),sp.sparse.vstack([C.transpose(),sp.sparse.lil_matrix((nc,nc))])])
-        print("Se size",Se.shape)
-        print("Se rank: ",np.linalg.matrix_rank(Se.toarray()))
+        #print("Se size",Se.shape)
+        #print("Se rank: ",np.linalg.matrix_rank(Se.toarray()))
 
-        print("S size",S.shape)
-        print("S rank: ",np.linalg.matrix_rank(S.toarray()))
+        #print("S size",S.shape)
+        #print("S rank: ",np.linalg.matrix_rank(S.toarray()))
 
-
+        #print("RHS:")
+        #print(RHS)
         #print(Se.shape)
         #plt.matshow(Se.toarray())
         #plt.show()
@@ -418,6 +471,8 @@ class Structure:
         RHS2 = np.hstack([self.RHS,np.zeros(self.Se_matrix.shape[0]-len(self.RHS))])
         dof = sp.sparse.linalg.spsolve(self.Se_matrix,RHS2)
         self.dof = dof
+        #print("DOF")
+        #print(self.dof)
         return dof
 
     
@@ -445,14 +500,16 @@ class Beam:
 #filename = "test_3d.txt"
 #filename = "final_struct_3d.txt"
 filename = "radar_final.txt"
+#filename = "tower_simple.txt"
 #filename = r'C:\Users\Volodymyr\Documents\Master_courses\project_numerical_analysis\beam-num-analysis\src\frame\test_3d.txt'
 x = Structure(filename)
 
-#x.assemble_matrices()
+x.assemble_matrices()
 
-#x.solve_system()
-#print(x.dof)
+x.solve_system()
+print("DDDDDDDOOOOOFFFFF")
+print(x.dof[-153])
 #x.get_line(0,x.beams[0],10)
 x.plot()
-#x.plot_deformed()
+x.plot_deformed(originalFlag = True)
 #print(x.dof) # vector of u and v as in script page 14 

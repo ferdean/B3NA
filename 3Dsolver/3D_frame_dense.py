@@ -6,28 +6,24 @@ from scipy.sparse import linalg
 
 class Structure:
     def __init__(self,filename):
+        # copy all information about structure from a text file to an object 
         
-        self.nodes      = []
-        self.beams      = []
-        
-        self.C_matrix   = None # constraints 
-        self.S_matrix   = None # without constraints 
-        self.Se_matrix  = None # with constraints 
-        self.M_matrix   = None # to be done 
-        self.RHS        = None 
-        
-        self.dof        = 0 
-        self.E          = 1.0
-        self.I          = 1.0
-        self.A          = 1.0
-        self.J          = 1.0
-        self.G          = 1.0
-        self.mu         = 1.0
-       
+        self.nodes = []
+        self.beams = []
+        self.C_matrix = None # constraints 
+        self.S_matrix = None  # without constraints 
+        self.Se_matrix = None # with constraints 
+        self.M_matrix = None # to be done 
+        self.RHS = None # 
+        self.dof = 0 # solved degrees of freedom 
+        self.E = 1.0
+        self.I = 1.0
+        self.A = 1.0
+        self.J = 1.0
+        self.G = 1.0
+        self.mu = 1.0
         mode = 0
-        
-        ### Read off nodes and beams from the file and store them in lists 
-        f = open(filename, "r") 
+        f = open(filename, "r") # read off nodes and beams from the file and store them in lists 
 
         for line in f:
             
@@ -53,90 +49,80 @@ class Structure:
                 continue
 
             if mode == 1:
-                
                 content = line.strip().split()
-                
-                ### (x,y) coordinates of a node in a global coordinate system
-                coord = np.array([float(content[0]), float(content[1]), float(content[2])])
-                
-                node = Node(coord) # Node object
-                node.index = node_index
-                
-                self.nodes.append(node) # Store this node in a list with all other nodes in the structure 
-                
+                coord = np.array([float(content[1]), float(content[2]), float(content[3])]) # x,y coordinates of a node in a global coordinate system
+                #status = content[2] # get status of the node 
+                node = Node(coord) # create node object
+                node.index = int(content[0])
+                #if status == "FORCE": # if there is a force applied to the node, store it in the node object
+                #    node.force = np.array([float(content[3]), float(content[4]),float(content[5])])
+                self.nodes.append(node) # store this node in a list with all other nodes in the structure 
                 node_index +=1
+                #print("node coordinates")
+                #print(node.coordinates)
                 
-                # print(node.coordinates)
 
             if mode == 2:
-                
                 content = line.strip().split()
-                
-                # print(content)
-                
-                nodes = (self.nodes[int(content[0]) - 1], self.nodes[int(content[1]) - 1]) # 2 nodes that define a beam
+                node_index_1 = int(content[0])
+                node_index_2 = int(content[1])
+                #print("content")
+                #print(content)
+                for node in self.nodes:
+                    if node.index == node_index_1:
+                        beam_node_1 = node
+                    if node.index == node_index_2:
+                        beam_node_2 = node
+                        
 
-                beam = Beam(nodes)          # Create beam object
-                beam.index = beam_index     # Write index of the beam
-                
-                nodes[0].beams.append(beam) # Add a reference to this beam for every node that is a part of this beam 
+                nodes = (beam_node_1,beam_node_2) # 2 nodes that define a beam
+
+                beam = Beam(nodes) # create beam object
+                beam.index = beam_index # write index of the beam
+                nodes[0].beams.append(beam) # add a reference to this beam for every node that is a part of this beam 
                 nodes[1].beams.append(beam)
-                
-                # print(beam.index)
-                
+                #print(beam.nodes[0].index)
                 self.beams.append(beam) # store this beam in a list with all other beams in the structure 
-                
                 beam_index +=1
 
             if mode == 3:
-                
-                content     = line.strip().split()
-                node_index  = int(content[0]) - 1
+                content = line.strip().split()
+                node_index = int(content[0])
                 node_status = content[1]
+                for node in self.nodes:
+                    if node.index == node_index:
+                        node.status = node_status
+                        if len(content) > 2:
+                            a = np.array([[content[2],content[3],content[4]],[content[5],content[6],content[7]]])
+                            print(a)
+                            node.force = a.astype(np.float)
+                        print("node type")
+                        print(node.status)
+                        break
                 
-                self.nodes[node_index].status = node_status
                 
-                # print(content)
-                
-                if len(content) > 2:
-                    a = np.array([[content[2], content[3], content[4]], [content[5], content[6], content[7]]])
-                    
-                    # print(a)
-                    
-                    self.nodes[node_index].force = a.astype(np.float)
 
             if mode == 4:
-                
-                content    = line.strip().split()
+                content = line.strip().split()
                 identifier = content[0]
-                value      = float(content[1])
-                
+                value = float(content[1])
                 if identifier == "E":
                     self.E = value
-                    
                 elif identifier == "I":
                     self.I = value
-                    
                 elif identifier == "A":
                     self.A = value
-                    
                 elif identifier == "mu":
                     self.mu = value
-                    
                 elif identifier == "G":
                     self.G = value
-                    
                 elif identifier == "J":
                     self.J = value
-                    
         f.close()
-        
-        for node in self.nodes:
-            print(node.index, "  ",node.coordinates, " ", node.status," ",node.force," ")
-            
-        for beam in self.beams:
-            print(beam.index, "  ",beam.offset, " ", )
-
+        #for node in self.nodes:
+        #    print(node.index, "  ",node.coordinates, " ", node.status," ",node.force," ")
+        #for beam in self.beams:
+        #    print(beam.index, "  ",beam.offset, " ", )
 
     def plot(self):
         # Draws a frame with all nodes, beams and force
@@ -182,7 +168,6 @@ class Structure:
         ax.set_title("\\textbf{Simulated structure} \n Red: Force, Gray: Free, Black = Fixed")
         plt.show()
 
-
     def get_line(self,beam,n):
         
         dof     = self.dof[beam.index*12:12*beam.index+12]
@@ -213,7 +198,6 @@ class Structure:
         A     += np.reshape(offset,(1,3)).T
         
         return  A
-
 
     def plot_deformed(self, originalFlag = False):
         
@@ -273,7 +257,6 @@ class Structure:
             
         plt.show()
 
-
     def is_origin(self, node, beam):
         
         if beam.nodes[0] == node:
@@ -330,24 +313,6 @@ class Structure:
         
         return (R_g_l, R_l_g) # (local-> global, global->local)
     
-    
-
-
-
-    def get_perturbation_derivatives(self,beam1,beam2,vec):
-        derivatives = []
-        h = 10**-8 # step size for central difference 
-        for i in range(6):
-            a0 = np.zeros(6)
-            a1 = np.zeros(6)
-            a1[i] = h
-            a2 = np.zeros(6)
-            a2[i] = -h
-            #print("a1:  ",a1)
-            d = (self.angle_constraint_function(beam1,beam2,vec,a1) - self.angle_constraint_function(beam1,beam2,vec,a0))/(h)
-            derivatives.append(d)
-        return np.array(derivatives)
-
     def assemble_matrices(self):
              
         n_beams = len(self.beams) 
@@ -396,7 +361,7 @@ class Structure:
             if node.status == "FREE" or node.status == "FORCE":
                 
                 anchor_beam = node.beams[0] # beam to which all other beams in this node will be pairwise attached
-                print("DIRECTION:", anchor_beam.direction)
+                #print("DIRECTION:", anchor_beam.direction)
                 Euler_angles1 = self.get_Euler_angles(anchor_beam)
                 R_g_l1 , R_l_g1 = self.get_transformations(Euler_angles1) # direct and inverse coordinate transformation matrices
                 local_index_1 = self.is_origin(node,anchor_beam) # 1 if origin, 2 if the other end 
@@ -474,16 +439,16 @@ class Structure:
                     c_vec[5,index_u] = 1.0
                     C = np.vstack([C,c_vec])
 
-        print("C size",C.shape)
-        print("C rank: ",np.linalg.matrix_rank(C))
+        #print("C size",C.shape)
+        #print("C rank: ",np.linalg.matrix_rank(C))
         nc = C.shape[0]
 
         Se = np.hstack([np.vstack([S,C]),np.vstack([C.transpose(),np.zeros((nc,nc))])])
-        print("Se size",Se.shape)
-        print("Se rank: ",np.linalg.matrix_rank(Se))
+        #print("Se size",Se.shape)
+        #print("Se rank: ",np.linalg.matrix_rank(Se))
 
-        print("S size",S.shape)
-        print("S rank: ",np.linalg.matrix_rank(S))
+        #print("S size",S.shape)
+        #print("S rank: ",np.linalg.matrix_rank(S))
 
         self.Se_matrix = Se
         self.S_matrix = S
@@ -521,29 +486,25 @@ class Beam:
         self.angles = None
 
 
-<<<<<<< HEAD:frame_3d/3D_frame_dense.py
+
 
 #filename = "test.txt"
-filename = r'C:\Users\Volodymyr\Documents\Master_courses\project_numerical_analysis\beam-num-analysis\src\frame\test_3d.txt'
-=======
+#filename = r'C:\Users\Volodymyr\Documents\Master_courses\project_numerical_analysis\beam-num-analysis\src\frame\test_3d.txt'
+
 # Little test section
 
 filename = "tower_simple.txt"
->>>>>>> 88e9b1ed327f191c43cecf0241acef5e92913ac5:3Dsolver/3D_frame_dense.py
+#filename = "radar_final.txt"
 x = Structure(filename)
 
 x.assemble_matrices()
 
 x.solve_system()
-<<<<<<< HEAD:frame_3d/3D_frame_dense.py
-print(x.dof)
+
+#print(x.dof)
 #x.get_line(0,x.beams[0],10)
 x.plot()
+print("DDDDDDDOOOOOFFFFF")
+print(x.dof[-153])
 x.plot_deformed()
 #print(x.dof) # vector of u and v as in script page 14 
-=======
-
-x.plot()
-x.plot_deformed()
-x.plot_deformed(originalFlag = True)
->>>>>>> 88e9b1ed327f191c43cecf0241acef5e92913ac5:3Dsolver/3D_frame_dense.py
