@@ -721,7 +721,7 @@ def eigenvalue_method(Me,Num,Se):
     eigfreq = 1/np.sqrt(eigval)
     return eigfreq,eigvec
 
-def eigenvalue_method_exact(grid, E, I, mu, L, N):
+def eigenvalue_method_exact(grid, E, I, mu, L, N, BCtype = "Cantilever"):
     """
     Calculates the eigenvalues and Nth eigenmode of the cantilever beam problem exactly (simply supported beam will be added later)
 
@@ -744,26 +744,41 @@ def eigenvalue_method_exact(grid, E, I, mu, L, N):
         the first N eigenmodes evaluated on the grid.    
     
     """
+    if BCtype == "Cantilever":
+        j = np.linspace(1,N,N)
+        x_j = (j - 0.5)*np.pi
+        if N > 0:
+            x_j[0] = 1.8751
+        if N > 1:
+            x_j[1] = 4.6941
+        if N > 2:
+            x_j[2] = 7.8548
+        k_j = x_j/L
+        eigfreq = np.sqrt(E*I/mu)*k_j**2
 
-    j = np.linspace(1,N,N)
-    x_j = (j - 0.5)*np.pi
-    if N > 0:
-        x_j[0] = 1.8751
-    if N > 1:
-        x_j[1] = 4.6941
-    if N > 2:
-        x_j[2] = 7.8548
-    k_j = x_j/L
-    eigfreq = np.sqrt(E*I/mu)*k_j**2
+        def w_j(k_j,x_j,x):
+            return 1/np.sqrt(L)*(np.cosh(k_j*x)-np.cos(k_j*x) - (np.cosh(x_j)+np.cos(x_j))/(np.sinh(x_j)+np.sin(x_j))*(np.sinh(k_j*x) - np.sin(k_j*x)))
+        
+        eigfuncs = np.zeros((grid.shape[0],N))
+        for i in range(N):
+            eigfuncs[:,i] = w_j(k_j[i],x_j[i],grid)
 
-    def w_j(k_j,x_j,x):
-        return 1/np.sqrt(L)*(np.cosh(k_j*x)-np.cos(k_j*x) - (np.cosh(x_j)+np.cos(x_j))/(np.sinh(x_j)+np.sin(x_j))*(np.sinh(k_j*x) - np.sin(k_j*x)))
-    
-    eigfuncs = np.zeros((grid.shape[0],N))
-    for i in range(N):
-        eigfuncs[:,i] = w_j(k_j[i],x_j[i],grid)
+        return eigfreq,eigfuncs
+    elif BCtype == "fixed":
+        j = np.linspace(1,N,N)
+        k_j = j*np.pi/L
+        eigfreq = np.sqrt(E*I/mu)*k_j**2
 
-    return eigfreq,eigfuncs
+        def w_j(k_j,x):
+            return 1/np.sqrt(L)*np.sin(k_j*x)
+        
+        eigfuncs = np.zeros((grid.shape[0],N))
+        for i in range(N):
+            eigfuncs[:,i] = w_j(k_j[i],grid)
+
+        return eigfreq,eigfuncs
+    else:
+        return "not a known BCtype"
 
 def eigenvalue_method_dynamic(t_0,t_f,Nt,M,S,modes,Num):
 
