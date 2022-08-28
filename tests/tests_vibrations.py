@@ -16,34 +16,36 @@ import matplotlib.animation as animation
 
 # %% Problem characteristics
 
-# Material properties (constant)
-E  = 1       # [N/mm2]
-I  = 1       # [mm4]
-k  = 1       # [N]
-L  = 1       # [m]
-nN = 200      # [-]
-mu = 1       # [kg/m]
 
-# Mesh
+# Material and mesh properties
+E  = 1e-2      # [N/mm2]
+I  = 1e-3      # [mm4]
+k  = 1e3      # [N]
+L  = 1        # [m]
+nN = 200      # [-]
+mu = 1        # [kg/m]
+
+### Boundaries
+BCtype = 'cantilever'
+BC     = (0, 0, 0, 0)   # (w(0), w(L), M(0), M(L))
+
+### Mesh
 grid = np.linspace(0, L, nN)
 
-# Boundary
-BC   = (0, 0, 0, 0)
-
-#get matrices
+### Main solver
 S, M  = getMatrices(grid, E, I, mu, quadrature = True)
 
 e0 = np.zeros(nN*2);    e0[0]  = 1.0
-eL = np.zeros(nN*2);    eL[-1] = 1.0
+eL = np.zeros(nN*2);    eL[-2] = 1.0
 
 d0 = np.zeros(nN*2);    d0[1]  = 1.0
-dL = np.zeros(nN*2);    dL[-2] = 1.0
+dL = np.zeros(nN*2);    dL[-1] = 1.0
 
 # Apply BCs
-Me, Se, RHSe = fixBeam(M, S, np.zeros(S.shape[0]), (e0, eL), (d0, dL), BC, BCtype = "cantilever")
+Me, Se, _ = fixBeam(M, S,  np.zeros(S.shape[0]), (e0, eL), (d0, dL), BC, BCtype)
 
 # Solving generalized eigenvalue problem exactly and numerically
-n = 6 #number of eigenfreq/vectors
+n = 10 #number of eigenfreq/vectors
 eigfreq_num, eigvec = eigenvalue_method(Me,n,Se)
 eigfreq_exact, eigfunc = eigenvalue_method_exact(grid, E, I, mu, L, n)
 
@@ -97,40 +99,41 @@ plt.show()
 
 # %% Problem characteristics
 
-# Material properties (constant)
-E  = 1       # [N/mm2]
-I  = 1       # [mm4]
-k  = 1       # [N]
-L  = 1       # [m]
+# Material and mesh properties
+E  = 1e-3     # [N/mm2]
+I  = 1e-3     # [mm4]
+k  = 1e3      # [N]
+L  = 1        # [m]
 nN = 200      # [-]
-mu = 1       # [kg/m]
+mu = 1        # [kg/m]
 
-# Mesh
+### Boundaries
+BCtype = 'fixed'
+BC     = (0, 0, 0, 0)   # (w(0), w(L), M(0), M(L))
+
+### Mesh
 grid = np.linspace(0, L, nN)
 
-# Boundary
-BC   = (0, 0, 0, 0)
-
-#get matrices
+### Main solver
 S, M  = getMatrices(grid, E, I, mu, quadrature = True)
 
 e0 = np.zeros(nN*2);    e0[0]  = 1.0
-eL = np.zeros(nN*2);    eL[-1] = 1.0
+eL = np.zeros(nN*2);    eL[-2] = 1.0
 
 d0 = np.zeros(nN*2);    d0[1]  = 1.0
-dL = np.zeros(nN*2);    dL[-2] = 1.0
+dL = np.zeros(nN*2);    dL[-1] = 1.0
 
 # Apply BCs
-Me, Se, RHSe = fixBeam(M, S, np.zeros(S.shape[0]), (e0, eL), (d0, dL), BC, BCtype = "fixed")
+Me, Se, _ = fixBeam(M, S,  np.zeros(S.shape[0]), (e0, eL), (d0, dL), BC, BCtype)
 
 # Solving generalized eigenvalue problem exactly and numerically
-n = 8 #number of eigenfreq/vectors
+n = 10 #number of eigenfreq/vectors
 eigfreq_num, eigvec = eigenvalue_method(Me,n,Se)
-#eigfreq_exact, eigfunc = eigenvalue_method_exact(grid, E, I, mu, L, n)
+eigfreq_exact, eigfunc = eigenvalue_method_exact(grid, E, I, mu, L, n,BCtype = "fixed")
 
 #Comparing the numerical and exact eigenfrequencies
 plt.figure()
-#plt.plot(eigfreq_exact,"*",color= 'red',label = "Exact")
+plt.plot(eigfreq_exact,"*",color= 'red',label = "Exact")
 plt.plot(eigfreq_num,"o",color= '#808080',label = "Numerical")
 plt.xlabel("j-th Eigenfrequency")
 plt.legend(loc = "upper left")
@@ -151,7 +154,7 @@ for i in range(int(n/2)):
         x_plot = np.linspace(grid.min(), grid.max(), 200)
         beam = get_sol(grid, eigvec[:-2,k])
         ax[i, j].plot(x_plot, beam(x_plot)/(np.max(np.abs(beam(x_plot)))), color= '#808080', label = 'eigenvector')
-#        ax[i, j].plot(grid,-eigfunc[:,k]/np.max(np.abs(eigfunc[:,])),"--", color= 'red', label = 'eigenfunction')
+        ax[i, j].plot(grid,-eigfunc[:,k]/np.max(np.abs(eigfunc[:,])),"--", color= 'red', label = 'eigenfunction')
         ax[i, j].set_title('i = '+str(k))
         if k == 1:
             ax[0][1].legend(loc = (1.05,0.75))
@@ -170,5 +173,3 @@ fig.supylabel("Deformation (mm)")
 fig.tight_layout()
 plt.savefig("Eigenfunction_Eigenvector_1D_supported_beam.png",dpi = 300)
 plt.show()
-
-# %%
