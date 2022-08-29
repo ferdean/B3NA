@@ -18,8 +18,8 @@ import matplotlib.animation as animation
 
 
 # Material and mesh properties
-E  = 1e-2      # [N/mm2]
-I  = 1e-3      # [mm4]
+E  = 1e-3     # [N/mm2]
+I  = 1e-2     # [mm4]
 k  = 1e3      # [N]
 L  = 1        # [m]
 nN = 200      # [-]
@@ -71,19 +71,26 @@ for i in range(int(n/2)):
     for j in range(2):
         x_plot = np.linspace(grid.min(), grid.max(), 200)
         beam = get_sol(grid, eigvec[:-2,k])
-        ax[i, j].plot(x_plot, beam(x_plot)/(np.max(np.abs(beam(x_plot)))), color= '#808080', label = 'eigenvector')
-        ax[i, j].plot(grid,-eigfunc[:,k]/np.max(np.abs(eigfunc[:,])),"--", color= 'red', label = 'eigenfunction')
+        y_1 = beam(x_plot)/(np.max(np.abs(beam(x_plot))))
+        y_2 = eigfunc[:,k]/np.max(np.abs(eigfunc[:,]))
+        if np.linalg.norm(y_1-y_2) < np.linalg.norm(y_1+y_2):
+            sign = 1
+        else:
+            sign = -1
+
+        ax[i, j].plot(x_plot, y_1, color= '#808080', label = 'eigenvector')
+        ax[i, j].plot(grid, sign*y_2,"--", color= 'red', label = 'eigenfunction')
         ax[i, j].set_title('i = '+str(k))
         if k == 1:
             ax[0][1].legend(loc = (1.05,0.75))
         k+=1
 
-ax[0][0].set_xticks([])
-ax[0][1].set_xticks([])
+ax[0][0].set_xticklabels([])
+ax[0][1].set_xticklabels([])
 ax[0][0].set_yticks(np.arange(-1,1,step = 0.5))
 ax[1][0].set_yticks(np.arange(-1,1,step = 0.5))
-ax[0][1].set_yticks([])
-ax[1][1].set_yticks([])
+ax[0][1].set_yticklabels([])
+ax[1][1].set_yticklabels([])
 
 fig.suptitle("Comparison of the eigenfunctions and eigenvectors")
 fig.supxlabel("x-direction(-)")
@@ -153,19 +160,26 @@ for i in range(int(n/2)):
     for j in range(2):
         x_plot = np.linspace(grid.min(), grid.max(), 200)
         beam = get_sol(grid, eigvec[:-2,k])
-        ax[i, j].plot(x_plot, beam(x_plot)/(np.max(np.abs(beam(x_plot)))), color= '#808080', label = 'eigenvector')
-        ax[i, j].plot(grid,-eigfunc[:,k]/np.max(np.abs(eigfunc[:,])),"--", color= 'red', label = 'eigenfunction')
+        y_1 = beam(x_plot)/(np.max(np.abs(beam(x_plot))))
+        y_2 = eigfunc[:,k]/np.max(np.abs(eigfunc[:,]))
+        if np.linalg.norm(y_1-y_2) < np.linalg.norm(y_1+y_2):
+            sign = 1
+        else:
+            sign = -1
+
+        ax[i, j].plot(x_plot, y_1, color= '#808080', label = 'eigenvector')
+        ax[i, j].plot(grid,sign*y_2,"--", color= 'red', label = 'eigenfunction')
         ax[i, j].set_title('i = '+str(k))
         if k == 1:
             ax[0][1].legend(loc = (1.05,0.75))
         k+=1
 
-ax[0][0].set_xticks([])
-ax[0][1].set_xticks([])
+ax[0][0].set_xticklabels([])
+ax[0][1].set_xticklabels([])
 ax[0][0].set_yticks(np.arange(-1,1,step = 0.5))
 ax[1][0].set_yticks(np.arange(-1,1,step = 0.5))
-ax[0][1].set_yticks([])
-ax[1][1].set_yticks([])
+ax[0][1].set_yticklabels([])
+ax[1][1].set_yticklabels([])
 
 fig.suptitle("Comparison of the eigenfunctions and eigenvectors")
 fig.supxlabel("x-direction(-)")
