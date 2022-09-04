@@ -37,7 +37,11 @@ d0 = np.zeros(nN*2);    d0[1]  = 1.0
 dL = np.zeros(nN*2);    dL[-2] = 1.0
 
 # Apply BCs
-Me, Se, RHSe = fixBeam(M, S, np.zeros(S.shape[0]), (e0, eL), (d0, dL), BC, BCtype = "cantilever")
+node   = np.array([10, -1])   # ID of nodes where force is applied
+force  = np.array([k, -k/5])  # Applied nodal forces
+RHS = getPointForce(grid, node, force)
+Me, Se, RHSe = fixBeam(M, S, RHS, (e0, eL), (d0, dL), BC, BCtype = "cantilever")
+steadySol  = sparse.linalg.spsolve(Se, RHSe)
 
 # Solving generalized eigenvalue problem exactly and numerically
 eigfreq_num, eigvec = eigenvalue_method(Me,6,Se)
@@ -64,7 +68,7 @@ plt.show()
 
 #%%
 #Simulating superpositions of eigenvectors
-n_modes = np.array([2,3]) #The mode numbers that will be in the superpositions
+n_modes = np.array([3]) #The mode numbers that will be in the superpositions
 Num = np.max(n_modes)
 modes = np.zeros(np.max(n_modes))
 
@@ -75,10 +79,13 @@ t_0 = 0
 t_f = 10000
 Nt = 1000
 
-superposition_dynamic = eigenvalue_method_dynamic(t_0,t_f,Nt,Me,Se,modes,Num)
+w_0 = steadySol
+w_diff_0 = np.zeros(w_0.shape)
+#w_0 = np.ones(w_0.shape)
+superposition_dynamic = eigenvalue_method_dynamic(t_0,t_f,Nt,w_0,w_diff_0,Me,Se,modes,Num)
     
 sol = superposition_dynamic
-ylim = (-10, 10)
+ylim = (-100, 100)
 
 ### Figure object definition
 fig = plt.Figure(figsize = (5, 3), dpi = 150)

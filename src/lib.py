@@ -780,7 +780,7 @@ def eigenvalue_method_exact(grid, E, I, mu, L, N, BCtype = "Cantilever"):
     else:
         return "not a known BCtype"
 
-def eigenvalue_method_dynamic(t_0,t_f,Nt,M,S,modes,Num):
+def eigenvalue_method_dynamic(t_0,t_f,Nt,w_0,w_diff_0,M,S,modes,Num):
 
     """
     Calculates the superposition of the eigenmodes in time
@@ -814,8 +814,12 @@ def eigenvalue_method_dynamic(t_0,t_f,Nt,M,S,modes,Num):
     b_k = np.copy(modes)
 
     w_k,eigvec = eigenvalue_method(M,Num,S)
-    
+
+    a_k = np.diag((((eigvec.T)@M)@(np.array([w_0,]*Num).T))/(((eigvec.T)@M)@eigvec))
+    b_k = np.diag((((eigvec.T)@M)@(np.array([w_diff_0,]*Num).T))/(((eigvec.T)@M)@eigvec))
     dt = (t_f - t_0)/Nt
+
+    print(a_k.shape)
 
     superposition_t = np.zeros((M.shape[0],Nt))
     
