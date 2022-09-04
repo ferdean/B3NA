@@ -747,11 +747,11 @@ def eigenvalue_method_exact(grid, E, I, mu, L, N, BCtype = "Cantilever"):
     if BCtype == "Cantilever":
         j = np.linspace(1,N,N)
         x_j = (j - 0.5)*np.pi
-        if N > 0:
+        if N >= 0:
             x_j[0] = 1.8751
-        if N > 1:
+        if N >= 1:
             x_j[1] = 4.6941
-        if N > 2:
+        if N >= 2:
             x_j[2] = 7.8548
         k_j = x_j/L
         eigfreq = np.sqrt(E*I/mu)*k_j**2
@@ -764,6 +764,7 @@ def eigenvalue_method_exact(grid, E, I, mu, L, N, BCtype = "Cantilever"):
             eigfuncs[:,i] = w_j(k_j[i],x_j[i],grid)
 
         return eigfreq,eigfuncs
+        
     elif BCtype == "fixed":
         j = np.linspace(1,N,N)
         k_j = j*np.pi/L
