@@ -18,7 +18,7 @@ E  = 1       # [N/mm2]
 I  = 1       # [mm4]
 k  = 1       # [N]
 L  = 1       # [m]
-nN = 100     # [-]
+nN = 10     # [-]
 mu = 1       # [kg/m]
 
 # Mesh
@@ -28,7 +28,7 @@ grid = np.linspace(0, L, nN)
 BC   = (0, 0, 0, 0)
 
 #get matrices
-S, M  = getMatrices(grid, E, I, mu, quadrature = True)
+S, M  = getMatrices(grid, E, I, mu, quadrature = False)
 
 e0 = np.zeros(nN*2);    e0[0]  = 1.0
 eL = np.zeros(nN*2);    eL[-1] = 1.0
@@ -37,14 +37,24 @@ d0 = np.zeros(nN*2);    d0[1]  = 1.0
 dL = np.zeros(nN*2);    dL[-2] = 1.0
 
 # Apply BCs
-node   = np.array([10, -1])   # ID of nodes where force is applied
+node   = np.array([5, -1])   # ID of nodes where force is applied
 force  = np.array([k, -k/5])  # Applied nodal forces
 RHS = getPointForce(grid, node, force)
 Me, Se, RHSe = fixBeam(M, S, RHS, (e0, eL), (d0, dL), BC, BCtype = "cantilever")
 steadySol  = sparse.linalg.spsolve(Se, RHSe)
 
+print(S.shape)
+print(M.shape)
+print(Se.toarray())
+np.linalg.cholesky(S.toarray())
+np.linalg.cholesky(M.toarray())
+
 # Solving generalized eigenvalue problem exactly and numerically
-eigfreq_num, eigvec = eigenvalue_method(Me,6,Se)
+#eigfreq_num, eigvec = eigenvalue_method(Me,6,Se)
+eigfreq_num, eigvec, eigenval = eigenvalue_method_2(Me,6,Se)
+
+print(eigenval)
+
 eigfreq_exact, eigfunc = eigenvalue_method_exact(grid, E, I, mu, L, 10)
 
 #comparing exact and numerical eigenvalues 

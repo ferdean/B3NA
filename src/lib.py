@@ -13,6 +13,8 @@ from matplotlib.patches import Arc, RegularPolygon
 from scipy.integrate import fixed_quad
 from scipy import sparse
 from scipy.sparse.linalg import eigsh
+from numpy.linalg import inv
+from numpy.linalg import eigh
 import scipy as sp
 import sympy as sm
 
@@ -720,6 +722,38 @@ def eigenvalue_method(Me,Num,Se):
     eigvec = eigvec[:,idx]
     eigfreq = 1/np.sqrt(eigval)
     return eigfreq,eigvec
+
+def eigenvalue_method_2(Me,Num,Se):
+    """
+    Calculates and sorts the first N eigenvalues and eigenmodes of the 
+    generalized eigenvalue problem Me x = lambda Se x
+
+    Parameters
+    ----------
+    Me: {array}
+        Matrix in the left hand side of the generalized eigenvalue problem
+    Se: {array}
+        Matrix in the right hand side of the generalized eigenvalue problem
+    Num: {integer}
+        number of eigenfrequencies and eigenmodes. 
+
+    Returns
+    -------
+    eigfreq: {array}
+        Vector of size N with the eigenfrequencies.
+    eigvec: {array}
+        matrix of size N by two times the size of the grid + 4 (or +2 need to find this out :( ),  
+        the column i gives the coefficient/weights for the shape functions of eigenmode i.
+    """
+
+    A = inv(Se.toarray())@Me.toarray()
+    eigval, eigvec = eigh(A)
+    
+    idx = eigval.argsort()[::-1]   
+    eigval = eigval[idx]
+    eigvec = eigvec[:,idx]
+    eigfreq = 1/np.sqrt(eigval)
+    return eigfreq[:Num],eigvec[:,:Num],eigval
 
 def eigenvalue_method_exact(grid, E, I, mu, L, N, BCtype = "Cantilever"):
     """
