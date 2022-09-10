@@ -22,7 +22,7 @@ E  = 1e-3     # [N/mm2]
 I  = 1e-2     # [mm4]
 k  = 1e3      # [N]
 L  = 1        # [m]
-nN = 200      # [-]
+nN = 500      # [-]
 mu = 1        # [kg/m]
 
 ### Boundaries
@@ -47,7 +47,8 @@ Me, Se, _ = fixBeam(M, S,  np.zeros(S.shape[0]), (e0, eL), (d0, dL), BC, BCtype)
 # Solving generalized eigenvalue problem exactly and numerically
 n = 10 #number of eigenfreq/vectors
 eigfreq_num, eigvec,_ = eigenvalue_method_2(Me,n,Se)
-eigfreq_exact, eigfunc = eigenvalue_method_exact(grid, E, I, mu, L, n)
+x_plot = np.linspace(grid.min(), grid.max(), 200)
+eigfreq_exact, eigfunc = eigenvalue_method_exact(x_plot, E, I, mu, L, n)
 
 #Comparing the numerical and exact eigenfrequencies
 plt.figure()
@@ -69,7 +70,6 @@ fig, ax = plt.subplots(int(n/2), 2)
 k = 0
 for i in range(int(n/2)):
     for j in range(2):
-        x_plot = np.linspace(grid.min(), grid.max(), 200)
         beam = get_sol(grid, eigvec[:-2,k])
         y_1 = beam(x_plot)/(np.max(np.abs(beam(x_plot))))
         y_2 = eigfunc[:,k]/np.max(np.abs(eigfunc[:,]))
@@ -79,7 +79,7 @@ for i in range(int(n/2)):
             sign = -1
 
         ax[i, j].plot(x_plot, y_1, color= '#808080', label = 'eigenvector')
-        ax[i, j].plot(grid, sign*y_2,"--", color= 'red', label = 'eigenfunction')
+        ax[i, j].plot(x_plot, sign*y_2,"--", color= 'red', label = 'eigenfunction')
         ax[i, j].set_title('i = '+str(k))
         if k == 1:
             ax[0][1].legend(loc = (1.05,0.75))
@@ -111,7 +111,7 @@ E  = 1e-3     # [N/mm2]
 I  = 1e-3     # [mm4]
 k  = 1e3      # [N]
 L  = 1        # [m]
-nN = 200      # [-]
+nN = 500      # [-]
 mu = 1        # [kg/m]
 
 ### Boundaries
@@ -136,7 +136,8 @@ Me, Se, _ = fixBeam(M, S,  np.zeros(S.shape[0]), (e0, eL), (d0, dL), BC, BCtype)
 # Solving generalized eigenvalue problem exactly and numerically
 n = 10 #number of eigenfreq/vectors
 eigfreq_num, eigvec,_ = eigenvalue_method_2(Me,n,Se)
-eigfreq_exact, eigfunc = eigenvalue_method_exact(grid, E, I, mu, L, n,BCtype = "fixed")
+x_plot = np.linspace(grid.min(), grid.max(), 200)
+eigfreq_exact, eigfunc = eigenvalue_method_exact(x_plot, E, I, mu, L, n,BCtype = "fixed")
 
 #Comparing the numerical and exact eigenfrequencies
 plt.figure()
@@ -158,7 +159,6 @@ fig, ax = plt.subplots(int(n/2), 2)
 k = 0
 for i in range(int(n/2)):
     for j in range(2):
-        x_plot = np.linspace(grid.min(), grid.max(), 200)
         beam = get_sol(grid, eigvec[:-2,k])
         y_1 = beam(x_plot)/(np.max(np.abs(beam(x_plot))))
         y_2 = eigfunc[:,k]/np.max(np.abs(eigfunc[:,]))
@@ -168,7 +168,7 @@ for i in range(int(n/2)):
             sign = -1
 
         ax[i, j].plot(x_plot, y_1, color= '#808080', label = 'eigenvector')
-        ax[i, j].plot(grid,sign*y_2,"--", color= 'red', label = 'eigenfunction')
+        ax[i, j].plot(x_plot,sign*y_2,"--", color= 'red', label = 'eigenfunction')
         ax[i, j].set_title('i = '+str(k))
         if k == 1:
             ax[0][1].legend(loc = (1.05,0.75))
@@ -226,7 +226,7 @@ Me, Se, RHSe = fixBeam(M, S, RHS, (e0, eL), (d0, dL), BC, BCtype = "cantilever")
 steadySol  = sparse.linalg.spsolve(Se, RHSe)
 
 #Simulating superpositions of eigenvectors
-modes = np.array([1]) #The mode numbers that will be in the superpositions
+modes = np.array([2]) #The mode numbers that will be in the superpositions
 
 t_0 = 0
 t_f = 10000
@@ -235,7 +235,7 @@ Nt = 1000
 w_0 = steadySol
 w_diff_0 = np.zeros(w_0.shape)
 #w_0 = np.ones(w_0.shape)
-superposition_dynamic = eigenvalue_method_dynamic(t_0,t_f,Nt,w_0,w_diff_0,Me,Se,modes,Fourier = True)
+superposition_dynamic = eigenvalue_method_dynamic(t_0,t_f,Nt,w_0,w_diff_0,Me,Se,modes,Fourier = False)
     
 sol = superposition_dynamic
 ylim = (-100, 100)
@@ -277,6 +277,10 @@ def animate(i):
 
 
 ani = animation.FuncAnimation(fig, animate, np.arange(0, sol.shape[1]), interval = 5, blit=False)
+
+f = r"Cantilever_beam.gif" 
+writergif = animation.PillowWriter(fps=30) 
+ani.save(f, writer=writergif)
 
 ### Main loop
 root.mainloop()
@@ -323,7 +327,7 @@ Me, Se, RHSe = fixBeam(M, S, RHS, (e0, eL), (d0, dL), BC, BCtype)
 steadySol     = sparse.linalg.spsolve(Se, RHSe)
 
 #Simulating superpositions of eigenvectors
-modes = np.array([1]) #The mode numbers that will be in the superpositions
+modes = np.array([2]) #The mode numbers that will be in the superpositions
 
 t_0 = 0
 t_f = 10000
@@ -332,7 +336,7 @@ Nt = 1000
 w_0 = steadySol
 w_diff_0 = np.zeros(w_0.shape)
 #w_0 = np.ones(w_0.shape)
-superposition_dynamic = eigenvalue_method_dynamic(t_0,t_f,Nt,w_0,w_diff_0,Me,Se,modes,Fourier = True)
+superposition_dynamic = eigenvalue_method_dynamic(t_0,t_f,Nt,w_0,w_diff_0,Me,Se,modes,Fourier = False)
     
 sol = superposition_dynamic
 ylim = (-100, 100)
@@ -374,6 +378,10 @@ def animate(i):
 
 
 ani = animation.FuncAnimation(fig, animate, np.arange(0, sol.shape[1]), interval = 5, blit=False)
+
+f = r"Supported_beam.gif" 
+writergif = animation.PillowWriter(fps=30) 
+ani.save(f, writer=writergif)
 
 ### Main loop
 root.mainloop()
