@@ -78,12 +78,7 @@ plt.show()
 
 #%%
 #Simulating superpositions of eigenvectors
-n_modes = np.array([2,3]) #The mode numbers that will be in the superpositions
-Num = np.max(n_modes)
-modes = np.zeros(np.max(n_modes))
-
-for i in n_modes:
-    modes[i-1] = 1e-3
+modes = np.array([2,3]) #The mode numbers that will be in the superpositions
 
 t_0 = 0
 t_f = 10000
@@ -92,7 +87,7 @@ Nt = 1000
 w_0 = steadySol
 w_diff_0 = np.zeros(w_0.shape)
 #w_0 = np.ones(w_0.shape)
-superposition_dynamic = eigenvalue_method_dynamic(t_0,t_f,Nt,w_0,w_diff_0,Me,Se,modes,Num)
+superposition_dynamic = eigenvalue_method_dynamic(t_0,t_f,Nt,w_0,w_diff_0,Me,Se,modes,Fourier = False)
     
 sol = superposition_dynamic
 ylim = (-100, 100)

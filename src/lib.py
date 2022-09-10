@@ -748,10 +748,15 @@ def eigenvalue_method_2(Me,Num,Se):
 
     A = inv(Se.toarray())@Me.toarray()
     eigval, eigvec = eig(A)
+    eigval = eigval.real
+    eigvec = eigvec.real
+
+    #deleting the four eigenvalues with corresponding eigenvector which are zero
     idx = eigval > 10e-16
-    #eigval = eigval[idx]
-    #eigvec = eigvec[idx]
-    
+    eigval = eigval[idx]
+    eigvec = eigvec[:,idx]
+
+    #sorting the eigenvalues with corresponding eigenvector from big to small     
     idx = eigval.argsort()[::-1]   
     eigval = eigval[idx]
     eigvec = eigvec[:,idx]
@@ -817,7 +822,7 @@ def eigenvalue_method_exact(grid, E, I, mu, L, N, BCtype = "Cantilever"):
     else:
         return "not a known BCtype"
 
-def eigenvalue_method_dynamic(t_0,t_f,Nt,w_0,w_diff_0,M,S,modes,Num,Fourier = True):
+def eigenvalue_method_dynamic(t_0,t_f,Nt,w_0,w_diff_0,M,S,modes,Fourier = True):
 
     """
     Calculates the superposition of the eigenmodes in time
@@ -847,14 +852,21 @@ def eigenvalue_method_dynamic(t_0,t_f,Nt,w_0,w_diff_0,M,S,modes,Num,Fourier = Tr
     
     """
 
-    a_k = np.copy(modes)
-    b_k = np.copy(modes)
+    Num = np.max(modes)
+    a_k = np.zeros(np.max(modes))
+
+    for i in modes:
+        a_k[i-1] = 1
+
+    b_k = np.copy(a_k)
 
     w_k,eigvec,_ = eigenvalue_method_2(M,Num,S)
 
     if Fourier:
-        a_k = np.diag((((eigvec.T)@M)@(np.array([w_0,]*Num).T))/(((eigvec.T)@M)@eigvec))
-        b_k = np.diag((((eigvec.T)@M)@(np.array([w_diff_0,]*Num).T))/(((eigvec.T)@M)@eigvec))
+        a_k_star = np.diag((((eigvec.T)@M)@(np.array([w_0,]*Num).T))/(((eigvec.T)@M)@eigvec))
+        b_k_star = np.diag((((eigvec.T)@M)@(np.array([w_diff_0,]*Num).T))/(((eigvec.T)@M)@eigvec))
+        a_k *= a_k_star
+        b_k *= b_k_star
 
     dt = (t_f - t_0)/Nt
 
@@ -864,7 +876,6 @@ def eigenvalue_method_dynamic(t_0,t_f,Nt,w_0,w_diff_0,M,S,modes,Num,Fourier = Tr
         return ((a_k*np.cos(w_k*t)+b_k/w_k*np.sin(w_k*t))*eigvec).sum(axis = 1)
 
     for i in range(Nt):
-        print(superposition(t_0+i*dt).shape)
         superposition_t[:,i] = superposition(t_0+i*dt)
     
     return superposition_t
