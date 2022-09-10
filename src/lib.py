@@ -14,7 +14,7 @@ from scipy.integrate import fixed_quad
 from scipy import sparse
 from scipy.sparse.linalg import eigsh
 from numpy.linalg import inv
-from numpy.linalg import eigh
+from numpy.linalg import eig
 import scipy as sp
 import sympy as sm
 
@@ -747,7 +747,10 @@ def eigenvalue_method_2(Me,Num,Se):
     """
 
     A = inv(Se.toarray())@Me.toarray()
-    eigval, eigvec = eigh(A)
+    eigval, eigvec = eig(A)
+    idx = eigval > 10e-16
+    #eigval = eigval[idx]
+    #eigvec = eigvec[idx]
     
     idx = eigval.argsort()[::-1]   
     eigval = eigval[idx]
@@ -814,7 +817,7 @@ def eigenvalue_method_exact(grid, E, I, mu, L, N, BCtype = "Cantilever"):
     else:
         return "not a known BCtype"
 
-def eigenvalue_method_dynamic(t_0,t_f,Nt,w_0,w_diff_0,M,S,modes,Num):
+def eigenvalue_method_dynamic(t_0,t_f,Nt,w_0,w_diff_0,M,S,modes,Num,Fourier = True):
 
     """
     Calculates the superposition of the eigenmodes in time
@@ -847,13 +850,13 @@ def eigenvalue_method_dynamic(t_0,t_f,Nt,w_0,w_diff_0,M,S,modes,Num):
     a_k = np.copy(modes)
     b_k = np.copy(modes)
 
-    w_k,eigvec = eigenvalue_method(M,Num,S)
+    w_k,eigvec,_ = eigenvalue_method_2(M,Num,S)
 
-    a_k = np.diag((((eigvec.T)@M)@(np.array([w_0,]*Num).T))/(((eigvec.T)@M)@eigvec))
-    b_k = np.diag((((eigvec.T)@M)@(np.array([w_diff_0,]*Num).T))/(((eigvec.T)@M)@eigvec))
+    if Fourier:
+        a_k = np.diag((((eigvec.T)@M)@(np.array([w_0,]*Num).T))/(((eigvec.T)@M)@eigvec))
+        b_k = np.diag((((eigvec.T)@M)@(np.array([w_diff_0,]*Num).T))/(((eigvec.T)@M)@eigvec))
+
     dt = (t_f - t_0)/Nt
-
-    print(a_k.shape)
 
     superposition_t = np.zeros((M.shape[0],Nt))
     
@@ -861,6 +864,7 @@ def eigenvalue_method_dynamic(t_0,t_f,Nt,w_0,w_diff_0,M,S,modes,Num):
         return ((a_k*np.cos(w_k*t)+b_k/w_k*np.sin(w_k*t))*eigvec).sum(axis = 1)
 
     for i in range(Nt):
+        print(superposition(t_0+i*dt).shape)
         superposition_t[:,i] = superposition(t_0+i*dt)
     
     return superposition_t

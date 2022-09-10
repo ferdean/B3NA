@@ -187,3 +187,102 @@ fig.supylabel("Deformation (mm)")
 fig.tight_layout()
 plt.savefig("Eigenfunction_Eigenvector_1D_supported_beam.png",dpi = 300)
 plt.show()
+
+#%%
+# +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# +     1D Cantilever Problem movies of eigenmodes and superpositions     +
+# +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+# %% Problem characteristics
+
+# Material properties (constant)
+E  = 1       # [N/mm2]
+I  = 1       # [mm4]
+k  = 1       # [N]
+L  = 1       # [m]
+nN = 10      # [-]
+mu = 1       # [kg/m]
+
+# Mesh
+grid = np.linspace(0, L, nN)
+
+# Boundary
+BC   = (0, 0, 0, 0)
+
+#get matrices
+S, M  = getMatrices(grid, E, I, mu, quadrature = False)
+
+e0 = np.zeros(nN*2);    e0[0]  = 1.0
+eL = np.zeros(nN*2);    eL[-1] = 1.0
+
+d0 = np.zeros(nN*2);    d0[1]  = 1.0
+dL = np.zeros(nN*2);    dL[-2] = 1.0
+
+# Apply BCs
+node   = np.array([5, -1])   # ID of nodes where force is applied
+force  = np.array([k, -k/5])  # Applied nodal forces
+RHS = getPointForce(grid, node, force)
+Me, Se, RHSe = fixBeam(M, S, RHS, (e0, eL), (d0, dL), BC, BCtype = "cantilever")
+steadySol  = sparse.linalg.spsolve(Se, RHSe)
+
+#Simulating superpositions of eigenvectors
+n_modes = np.array([2,3]) #The mode numbers that will be in the superpositions
+Num = np.max(n_modes)
+modes = np.zeros(np.max(n_modes))
+
+for i in n_modes:
+    modes[i-1] = 1
+
+t_0 = 0
+t_f = 10000
+Nt = 1000
+
+w_0 = steadySol
+w_diff_0 = np.zeros(w_0.shape)
+#w_0 = np.ones(w_0.shape)
+superposition_dynamic = eigenvalue_method_dynamic(t_0,t_f,Nt,w_0,w_diff_0,Me,Se,modes,Num,Fourier = False)
+    
+sol = superposition_dynamic
+ylim = (-100, 100)
+
+### Figure object definition
+fig = plt.Figure(figsize = (5, 3), dpi = 150)
+
+### Tkinter window
+root   = Tk.Tk()
+canvas = FigureCanvasTkAgg(fig, master=root)
+canvas.get_tk_widget().grid(column=0,row=1)
+
+### Animation definition
+ax     = fig.add_subplot(111)
+
+nData  = 100
+
+nN     = len(grid)
+x_plot = np.linspace(grid.min(), grid.max(), nData) 
+
+beam = get_sol(grid, sol[0:-2, 0])
+line, = ax.plot(x_plot, beam(x_plot) * 1e3, color= '#808080', label = 'numerical')
+
+ax.plot(x_plot, np.zeros(x_plot.shape), color= '#959595', linestyle = '--')
+ax.axvline(x = 0, color="black", linestyle="-", linewidth = 5)
+
+ax.set_ylabel('y-dimension (-)')
+ax.set_xlabel('x-dimension (-)')
+
+ax.tick_params(direction= 'in', which= 'major', length= 4, bottom= True,
+    top=True, right= False, left=True, width = 1)
+
+ax.set_ylim(ylim[0], ylim[1])
+
+def animate(i):
+    beam = get_sol(grid, sol[0:-2, i])
+    line.set_ydata( beam(x_plot) * 1e3)  # update the data
+    return line, 
+
+
+ani = animation.FuncAnimation(fig, animate, np.arange(0, sol.shape[1]), interval = 5, blit=False)
+
+### Main loop
+root.mainloop()
+# %%

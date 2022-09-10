@@ -43,17 +43,17 @@ RHS = getPointForce(grid, node, force)
 Me, Se, RHSe = fixBeam(M, S, RHS, (e0, eL), (d0, dL), BC, BCtype = "cantilever")
 steadySol  = sparse.linalg.spsolve(Se, RHSe)
 
-print(S.shape)
-print(M.shape)
-print(Se.toarray())
-np.linalg.cholesky(S.toarray())
-np.linalg.cholesky(M.toarray())
-
 # Solving generalized eigenvalue problem exactly and numerically
 #eigfreq_num, eigvec = eigenvalue_method(Me,6,Se)
 eigfreq_num, eigvec, eigenval = eigenvalue_method_2(Me,6,Se)
 
 print(eigenval)
+plt.figure()
+x_plot = np.linspace(grid.min(), grid.max(), 200)
+beam = get_sol(grid, eigvec[:-2,0])
+y_1 = beam(x_plot)/(np.max(np.abs(beam(x_plot))))
+plt.plot(x_plot,y_1)
+plt.show()
 
 eigfreq_exact, eigfunc = eigenvalue_method_exact(grid, E, I, mu, L, 10)
 
@@ -78,7 +78,7 @@ plt.show()
 
 #%%
 #Simulating superpositions of eigenvectors
-n_modes = np.array([3]) #The mode numbers that will be in the superpositions
+n_modes = np.array([2,3]) #The mode numbers that will be in the superpositions
 Num = np.max(n_modes)
 modes = np.zeros(np.max(n_modes))
 
