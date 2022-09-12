@@ -13,6 +13,8 @@ from matplotlib.patches import Arc, RegularPolygon
 from scipy.integrate import fixed_quad
 from scipy import sparse
 from scipy.sparse.linalg import eigsh
+from numpy.linalg import inv
+from numpy.linalg import eig
 import scipy as sp
 import sympy as sm
 
@@ -721,6 +723,46 @@ def eigenvalue_method(Me,Num,Se):
     eigfreq = 1/np.sqrt(eigval)
     return eigfreq,eigvec
 
+def eigenvalue_method_2(Me,Num,Se):
+    """
+    Calculates and sorts the first N eigenvalues and eigenmodes of the 
+    generalized eigenvalue problem Me x = lambda Se x
+
+    Parameters
+    ----------
+    Me: {array}
+        Matrix in the left hand side of the generalized eigenvalue problem
+    Se: {array}
+        Matrix in the right hand side of the generalized eigenvalue problem
+    Num: {integer}
+        number of eigenfrequencies and eigenmodes. 
+
+    Returns
+    -------
+    eigfreq: {array}
+        Vector of size N with the eigenfrequencies.
+    eigvec: {array}
+        matrix of size N by two times the size of the grid + 4 (or +2 need to find this out :( ),  
+        the column i gives the coefficient/weights for the shape functions of eigenmode i.
+    """
+
+    A = inv(Se.toarray())@Me.toarray()
+    eigval, eigvec = eig(A)
+    eigval = eigval.real
+    eigvec = eigvec.real
+
+    #deleting the four eigenvalues with corresponding eigenvector which are zero
+    idx = eigval > 10e-16
+    eigval = eigval[idx]
+    eigvec = eigvec[:,idx]
+
+    #sorting the eigenvalues with corresponding eigenvector from big to small     
+    idx = eigval.argsort()[::-1]   
+    eigval = eigval[idx]
+    eigvec = eigvec[:,idx]
+    eigfreq = 1/np.sqrt(eigval)
+    return eigfreq[:Num],eigvec[:,:Num],eigval
+
 def eigenvalue_method_exact(grid, E, I, mu, L, N, BCtype = "Cantilever"):
     """
     Calculates the eigenvalues and Nth eigenmode of the cantilever beam problem exactly (simply supported beam will be added later)
@@ -780,7 +822,7 @@ def eigenvalue_method_exact(grid, E, I, mu, L, N, BCtype = "Cantilever"):
     else:
         return "not a known BCtype"
 
-def eigenvalue_method_dynamic(t_0,t_f,Nt,M,S,modes,Num):
+def eigenvalue_method_dynamic(t_0,t_f,Nt,w_0,w_diff_0,M,S,modes,Fourier = True):
 
     """
     Calculates the superposition of the eigenmodes in time
@@ -810,11 +852,22 @@ def eigenvalue_method_dynamic(t_0,t_f,Nt,M,S,modes,Num):
     
     """
 
-    a_k = np.copy(modes)
-    b_k = np.copy(modes)
+    Num = np.max(modes)
+    a_k = np.zeros(np.max(modes))
 
-    w_k,eigvec = eigenvalue_method(M,Num,S)
-    
+    for i in modes:
+        a_k[i-1] = 1
+
+    b_k = np.copy(a_k)
+
+    w_k,eigvec,_ = eigenvalue_method_2(M,Num,S)
+
+    if Fourier:
+        a_k_star = np.diag((((eigvec.T)@M)@(np.array([w_0,]*Num).T))/(((eigvec.T)@M)@eigvec))
+        b_k_star = np.diag((((eigvec.T)@M)@(np.array([w_diff_0,]*Num).T))/(((eigvec.T)@M)@eigvec))
+        a_k *= a_k_star
+        b_k *= b_k_star
+
     dt = (t_f - t_0)/Nt
 
     superposition_t = np.zeros((M.shape[0],Nt))
