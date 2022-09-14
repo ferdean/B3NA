@@ -246,7 +246,7 @@ def getMatrices(grid, E, I, mu, quadrature = True):
                             S[i,j] += weights[k] * E((x1 - x0) * nodes[k] + x0) * I((x1 - x0) * nodes[k] + x0) * ddphi[i](nodes[k])  * ddphi[j](nodes[k])
                             M[i,j] += weights[k] * mu(nodes[k]) * phi[i](nodes[k])  * phi[j](nodes[k])
                         
-        return np.multiply(S, h_array), np.multiply(M, h_array)
+        return np.multiply(S, h_array), np.multiply(M, h_array)*h**4
         
     # ++++++++++++++++++++++++++++++++++++++++++++++
     # +            Function starts here            +
