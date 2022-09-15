@@ -9,10 +9,10 @@ from lib import *
 
 # Material properties (constant)
 E  = 1      # [N/mm2]
-I  = 1    # [mm4]
+I  = 1      # [mm4]
 k  = 1      # [N]
-L  = 1        # [m]
-nN = 10       # [-]
+L  = 1      # [m]
+nN = 100    # [-]
 mu = 1      # [kg/m]
 
 # Material properties (variable)
@@ -42,7 +42,7 @@ BC   = (0, 0, 0, 0)
 # %% CASE 3: Timedependent load distribution
 
 def q(x,t):
-    return k * x * np.exp(-10*t)    
+    return k * x * np.sin(2*np.pi*t)    
 
 RHS   = getRHS(grid, q)
 
@@ -72,11 +72,11 @@ u_2_0 = np.zeros(steadySol.shape)
 initialConds = (steadySol, u_1_0, u_2_0)
 
 # Simulation characteristics
-RHSe  = np.zeros(steadySol.shape)   # Free vibration case
+#RHSe  = np.zeros(steadySol.shape)   # Free vibration case
 
 h     = 1e-2
 t0    = 0.0
-T     = 1.0
+T     = 10.0
 
 sol, time     = newmarkMethod(Me, Se, RHSe, initialConds, h, t0, T, verbose = False)
 
@@ -88,7 +88,7 @@ nData  = 100
 
 nN     = len(grid)
 x_plot = np.linspace(grid.min(), grid.max(), nData) 
-ylim   = (-2e-8, 2e-8)
+ylim   = (-250, 250)
 
 
 plt.rcParams['text.usetex'] = True
@@ -125,6 +125,6 @@ def animation_frame(i):
     
     return fig
 
-ani = animation.FuncAnimation(fig, animation_frame,np.arange(0, 99), interval=10)
+ani = animation.FuncAnimation(fig, animation_frame,np.arange(0, sol.shape[1]), interval=10)
 
-ani.save('temporal_2.gif', writer='imagemagick', fps= 30)
+ani.save('Dynamic_Sim_forced_vibrations.gif', writer='imagemagick', fps= 30)
