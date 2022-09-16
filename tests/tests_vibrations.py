@@ -16,7 +16,6 @@ import matplotlib.animation as animation
 
 # %% Problem characteristics
 
-
 # Material and mesh properties
 E  = 1    # [N/mm2]
 I  = 1     # [mm4]
@@ -51,6 +50,9 @@ x_plot = np.linspace(grid.min(), grid.max(), 200)
 eigfreq_exact, eigfunc = eigenvalue_method_exact(x_plot, E, I, mu, L, n)
 
 #Comparing the numerical and exact eigenfrequencies
+plt.rcParams['text.usetex'] = True
+plt.rcParams.update({'font.size' : 9})
+
 plt.figure()
 plt.plot(eigfreq_exact,"*",color= 'red',label = "Exact")
 plt.plot(eigfreq_num,"o",color= '#808080',label = "Numerical")
@@ -81,6 +83,8 @@ for i in range(int(n/2)):
         ax[i, j].plot(x_plot, y_1, color= '#808080', label = 'eigenvector')
         ax[i, j].plot(x_plot, sign*y_2,"--", color= 'red', label = 'eigenfunction')
         ax[i, j].set_title('i = '+str(k))
+        ax[i, j].plot(x_plot, np.zeros(x_plot.shape), color= '#959595', linestyle = '--')
+        ax[i, j].axvline(x = 0, color="black", linestyle="-", linewidth = 5)
         if k == 1:
             ax[0][1].legend(loc = (1.05,0.75))
         k+=1
@@ -140,6 +144,9 @@ x_plot = np.linspace(grid.min(), grid.max(), 200)
 eigfreq_exact, eigfunc = eigenvalue_method_exact(x_plot, E, I, mu, L, n,BCtype = "fixed")
 
 #Comparing the numerical and exact eigenfrequencies
+plt.rcParams['text.usetex'] = True
+plt.rcParams.update({'font.size' : 9})
+
 plt.figure()
 plt.plot(eigfreq_exact,"*",color= 'red',label = "Exact")
 plt.plot(eigfreq_num,"o",color= '#808080',label = "Numerical")
@@ -170,6 +177,9 @@ for i in range(int(n/2)):
         ax[i, j].plot(x_plot, y_1, color= '#808080', label = 'eigenvector')
         ax[i, j].plot(x_plot,sign*y_2,"--", color= 'red', label = 'eigenfunction')
         ax[i, j].set_title('i = '+str(k))
+        ax[i, j].plot(x_plot, np.zeros(x_plot.shape), color= '#959595', linestyle = '--')
+        ax[i, j].axvline(x = 0, color="black", linestyle="-", linewidth = 5)
+        ax[i, j].axvline(x = L, color="black", linestyle="-", linewidth = 5)
         if k == 1:
             ax[0][1].legend(loc = (1.05,0.75))
         k+=1
@@ -261,7 +271,6 @@ x_plot = np.linspace(grid.min(), grid.max(), nData)
 
 beam = get_sol(grid, sol[0:-2, 0])
 line, = ax.plot(x_plot, beam(x_plot) * 1e3, color= '#808080', label = 'numerical')
-
 ax.plot(x_plot, np.zeros(x_plot.shape), color= '#959595', linestyle = '--')
 ax.axvline(x = 0, color="black", linestyle="-", linewidth = 5)
 
@@ -368,6 +377,7 @@ line, = ax.plot(x_plot, beam(x_plot) * 1e3, color= '#808080', label = 'numerical
 
 ax.plot(x_plot, np.zeros(x_plot.shape), color= '#959595', linestyle = '--')
 ax.axvline(x = 0, color="black", linestyle="-", linewidth = 5)
+ax.axvline(x = L, color="black", linestyle="-", linewidth = 5)
 
 ax.set_ylabel('deformation (mm)')
 ax.set_xlabel('x-dimension (-)')
