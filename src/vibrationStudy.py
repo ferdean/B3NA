@@ -18,7 +18,7 @@ E  = 1       # [N/mm2]
 I  = 1       # [mm4]
 k  = 1       # [N]
 L  = 1       # [m]
-nN = 100     # [-]
+nN = 10     # [-]
 mu = 1       # [kg/m]
 
 # Mesh
@@ -28,7 +28,7 @@ grid = np.linspace(0, L, nN)
 BC   = (0, 0, 0, 0)
 
 #get matrices
-S, M  = getMatrices(grid, E, I, mu, quadrature = True)
+S, M  = getMatrices(grid, E, I, mu, quadrature = False)
 
 e0 = np.zeros(nN*2);    e0[0]  = 1.0
 eL = np.zeros(nN*2);    eL[-1] = 1.0
@@ -37,10 +37,24 @@ d0 = np.zeros(nN*2);    d0[1]  = 1.0
 dL = np.zeros(nN*2);    dL[-2] = 1.0
 
 # Apply BCs
-Me, Se, RHSe = fixBeam(M, S, np.zeros(S.shape[0]), (e0, eL), (d0, dL), BC, BCtype = "cantilever")
+node   = np.array([5, -1])   # ID of nodes where force is applied
+force  = np.array([k, -k/5])  # Applied nodal forces
+RHS = getPointForce(grid, node, force)
+Me, Se, RHSe = fixBeam(M, S, RHS, (e0, eL), (d0, dL), BC, BCtype = "cantilever")
+steadySol  = sparse.linalg.spsolve(Se, RHSe)
 
 # Solving generalized eigenvalue problem exactly and numerically
-eigfreq_num, eigvec = eigenvalue_method(Me,6,Se)
+#eigfreq_num, eigvec = eigenvalue_method(Me,6,Se)
+eigfreq_num, eigvec, eigenval = eigenvalue_method_2(Me,6,Se)
+
+print(eigenval)
+plt.figure()
+x_plot = np.linspace(grid.min(), grid.max(), 200)
+beam = get_sol(grid, eigvec[:-2,0])
+y_1 = beam(x_plot)/(np.max(np.abs(beam(x_plot))))
+plt.plot(x_plot,y_1)
+plt.show()
+
 eigfreq_exact, eigfunc = eigenvalue_method_exact(grid, E, I, mu, L, 10)
 
 #comparing exact and numerical eigenvalues 
@@ -64,21 +78,19 @@ plt.show()
 
 #%%
 #Simulating superpositions of eigenvectors
-n_modes = np.array([2,3]) #The mode numbers that will be in the superpositions
-Num = np.max(n_modes)
-modes = np.zeros(np.max(n_modes))
-
-for i in n_modes:
-    modes[i-1] = 1e-3
+modes = np.array([2,3]) #The mode numbers that will be in the superpositions
 
 t_0 = 0
 t_f = 10000
 Nt = 1000
 
-superposition_dynamic = eigenvalue_method_dynamic(t_0,t_f,Nt,Me,Se,modes,Num)
+w_0 = steadySol
+w_diff_0 = np.zeros(w_0.shape)
+#w_0 = np.ones(w_0.shape)
+superposition_dynamic = eigenvalue_method_dynamic(t_0,t_f,Nt,w_0,w_diff_0,Me,Se,modes,Fourier = False)
     
 sol = superposition_dynamic
-ylim = (-10, 10)
+ylim = (-100, 100)
 
 ### Figure object definition
 fig = plt.Figure(figsize = (5, 3), dpi = 150)
