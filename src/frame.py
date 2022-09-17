@@ -45,24 +45,24 @@ _, _, _   = x.assemble_matrices()
 x.solve_system()
 x.plot_frame(scaler = 1e-2)
 
-# %% Part 3.- Eigenmodes
-
-x.eigen_freq_modes(4, 0)
-x.plot_frame(scaler = 1e4)
-
-# %%part 4 Dynamics Eigenmodes
-scaler = 1e4
-
-lim = np.array([1.5, 6.5])
-
-sol = x.eigen_freq_modes(4, 0, True, 0, 1, 100, np.array([2]))
-
-x.animate_frame(xlim = lim, ylim = lim)
-
-# %%part 4 Dynamics
-scaler = 1e4
+# %%part 3 Dynamics
+scaler = 1e-2
 
 lim = np.array([1.5, 6.5])
 
 sol, t = x.solve_dynamic(0.01, 0, 60)
 x.animate_frame(xlim = lim, ylim = lim)
+
+# %% Part 4.- Eigenmodes
+
+#x.eigen_freq_modes(4, 0)
+#x.plot_frame(scaler = 1e1)
+
+# %%part 5 Dynamics Eigenmodes
+#scaler = 1e4
+
+#lim = np.array([1.5, 6.5])
+
+#sol = x.eigen_freq_modes(4, 0, True, 0, 1, 100, np.array([2]))
+
+#x.animate_frame(xlim = lim, ylim = lim)
