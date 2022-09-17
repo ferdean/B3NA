@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 
 
 from lib import *
-
 # %% Problem characteristics
 
 # Material properties (constant)

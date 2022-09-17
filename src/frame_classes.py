@@ -395,7 +395,7 @@ class Structure:
             S[global_index + 2:global_index + 6, global_index + 2:global_index + 6] = self.E * self.I * S2_loc * h_array
 
             M_tilde[global_index:global_index + 2, global_index:global_index + 2] = self.mu * M1_loc * h
-            M_tilde[global_index + 2:global_index + 6, global_index + 2:global_index + 6] = self.mu *  M2_loc * h_array
+            M_tilde[global_index + 2:global_index + 6, global_index + 2:global_index + 6] = self.mu *  M2_loc * h_array * h**4
 
         # loop through nodes and get constraints and forces
         RHS = np.zeros(n_beams * 6)

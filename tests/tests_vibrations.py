@@ -16,13 +16,12 @@ import matplotlib.animation as animation
 
 # %% Problem characteristics
 
-
 # Material and mesh properties
-E  = 1e-3     # [N/mm2]
-I  = 1e-2     # [mm4]
-k  = 1e3      # [N]
+E  = 1    # [N/mm2]
+I  = 1     # [mm4]
+k  = 1      # [N]
 L  = 1        # [m]
-nN = 500      # [-]
+nN = 100      # [-]
 mu = 1        # [kg/m]
 
 ### Boundaries
@@ -51,6 +50,9 @@ x_plot = np.linspace(grid.min(), grid.max(), 200)
 eigfreq_exact, eigfunc = eigenvalue_method_exact(x_plot, E, I, mu, L, n)
 
 #Comparing the numerical and exact eigenfrequencies
+plt.rcParams['text.usetex'] = True
+plt.rcParams.update({'font.size' : 9})
+
 plt.figure()
 plt.plot(eigfreq_exact,"*",color= 'red',label = "Exact")
 plt.plot(eigfreq_num,"o",color= '#808080',label = "Numerical")
@@ -81,6 +83,8 @@ for i in range(int(n/2)):
         ax[i, j].plot(x_plot, y_1, color= '#808080', label = 'eigenvector')
         ax[i, j].plot(x_plot, sign*y_2,"--", color= 'red', label = 'eigenfunction')
         ax[i, j].set_title('i = '+str(k))
+        ax[i, j].plot(x_plot, np.zeros(x_plot.shape), color= '#959595', linestyle = '--')
+        ax[i, j].axvline(x = 0, color="black", linestyle="-", linewidth = 5)
         if k == 1:
             ax[0][1].legend(loc = (1.05,0.75))
         k+=1
@@ -107,11 +111,11 @@ plt.show()
 # %% Problem characteristics
 
 # Material and mesh properties
-E  = 1e-3     # [N/mm2]
-I  = 1e-3     # [mm4]
-k  = 1e3      # [N]
+E  = 1     # [N/mm2]
+I  = 1     # [mm4]
+k  = 1      # [N]
 L  = 1        # [m]
-nN = 500      # [-]
+nN = 100      # [-]
 mu = 1        # [kg/m]
 
 ### Boundaries
@@ -140,6 +144,9 @@ x_plot = np.linspace(grid.min(), grid.max(), 200)
 eigfreq_exact, eigfunc = eigenvalue_method_exact(x_plot, E, I, mu, L, n,BCtype = "fixed")
 
 #Comparing the numerical and exact eigenfrequencies
+plt.rcParams['text.usetex'] = True
+plt.rcParams.update({'font.size' : 9})
+
 plt.figure()
 plt.plot(eigfreq_exact,"*",color= 'red',label = "Exact")
 plt.plot(eigfreq_num,"o",color= '#808080',label = "Numerical")
@@ -170,6 +177,9 @@ for i in range(int(n/2)):
         ax[i, j].plot(x_plot, y_1, color= '#808080', label = 'eigenvector')
         ax[i, j].plot(x_plot,sign*y_2,"--", color= 'red', label = 'eigenfunction')
         ax[i, j].set_title('i = '+str(k))
+        ax[i, j].plot(x_plot, np.zeros(x_plot.shape), color= '#959595', linestyle = '--')
+        ax[i, j].axvline(x = 0, color="black", linestyle="-", linewidth = 5)
+        ax[i, j].axvline(x = L, color="black", linestyle="-", linewidth = 5)
         if k == 1:
             ax[0][1].legend(loc = (1.05,0.75))
         k+=1
@@ -226,11 +236,11 @@ Me, Se, RHSe = fixBeam(M, S, RHS, (e0, eL), (d0, dL), BC, BCtype = "cantilever")
 steadySol  = sparse.linalg.spsolve(Se, RHSe)
 
 #Simulating superpositions of eigenvectors
-modes = np.array([2]) #The mode numbers that will be in the superpositions
+modes = np.array([4]) #The mode numbers that will be in the superpositions
 
 t_0 = 0
-t_f = 10000
-Nt = 1000
+t_f = 1
+Nt = 30*10
 
 w_0 = steadySol
 w_diff_0 = np.zeros(w_0.shape)
@@ -238,10 +248,13 @@ w_diff_0 = np.zeros(w_0.shape)
 superposition_dynamic = eigenvalue_method_dynamic(t_0,t_f,Nt,w_0,w_diff_0,Me,Se,modes,Fourier = False)
     
 sol = superposition_dynamic
-ylim = (-100, 100)
+ylim = (-10, 10)
 
 ### Figure object definition
 fig = plt.Figure(figsize = (5, 3), dpi = 150)
+
+plt.rcParams['text.usetex'] = True
+plt.rcParams.update({'font.size' : 9})
 
 ### Tkinter window
 root   = Tk.Tk()
@@ -258,11 +271,10 @@ x_plot = np.linspace(grid.min(), grid.max(), nData)
 
 beam = get_sol(grid, sol[0:-2, 0])
 line, = ax.plot(x_plot, beam(x_plot) * 1e3, color= '#808080', label = 'numerical')
-
 ax.plot(x_plot, np.zeros(x_plot.shape), color= '#959595', linestyle = '--')
 ax.axvline(x = 0, color="black", linestyle="-", linewidth = 5)
 
-ax.set_ylabel('y-dimension (-)')
+ax.set_ylabel('deformation (mm)')
 ax.set_xlabel('x-dimension (-)')
 
 ax.tick_params(direction= 'in', which= 'major', length= 4, bottom= True,
@@ -327,11 +339,11 @@ Me, Se, RHSe = fixBeam(M, S, RHS, (e0, eL), (d0, dL), BC, BCtype)
 steadySol     = sparse.linalg.spsolve(Se, RHSe)
 
 #Simulating superpositions of eigenvectors
-modes = np.array([2]) #The mode numbers that will be in the superpositions
+modes = np.array([2,3]) #The mode numbers that will be in the superpositions
 
 t_0 = 0
-t_f = 10000
-Nt = 1000
+t_f = 1
+Nt = 30*10
 
 w_0 = steadySol
 w_diff_0 = np.zeros(w_0.shape)
@@ -339,7 +351,7 @@ w_diff_0 = np.zeros(w_0.shape)
 superposition_dynamic = eigenvalue_method_dynamic(t_0,t_f,Nt,w_0,w_diff_0,Me,Se,modes,Fourier = False)
     
 sol = superposition_dynamic
-ylim = (-100, 100)
+ylim = (-25, 25)
 
 ### Figure object definition
 fig = plt.Figure(figsize = (5, 3), dpi = 150)
@@ -348,6 +360,9 @@ fig = plt.Figure(figsize = (5, 3), dpi = 150)
 root   = Tk.Tk()
 canvas = FigureCanvasTkAgg(fig, master=root)
 canvas.get_tk_widget().grid(column=0,row=1)
+
+plt.rcParams['text.usetex'] = True
+plt.rcParams.update({'font.size' : 9})
 
 ### Animation definition
 ax     = fig.add_subplot(111)
@@ -362,8 +377,9 @@ line, = ax.plot(x_plot, beam(x_plot) * 1e3, color= '#808080', label = 'numerical
 
 ax.plot(x_plot, np.zeros(x_plot.shape), color= '#959595', linestyle = '--')
 ax.axvline(x = 0, color="black", linestyle="-", linewidth = 5)
+ax.axvline(x = L, color="black", linestyle="-", linewidth = 5)
 
-ax.set_ylabel('y-dimension (-)')
+ax.set_ylabel('deformation (mm)')
 ax.set_xlabel('x-dimension (-)')
 
 ax.tick_params(direction= 'in', which= 'major', length= 4, bottom= True,
