@@ -30,7 +30,7 @@ except:
 # %% Part 2.- Frame simulation
 
 # name      = 'bridge_gud.txt'
-name      = 'crane.txt'
+name      = 'bridge.txt'
 directory = 'frames/' + name
 
 x         = Structure(directory)
@@ -54,16 +54,12 @@ x.plot_frame(scaler = 1e-2)
 #x.animate_frame(xlim = lim, ylim = lim)
 
 # %% Part 4.- Eigenmodes
-a,b,_ = eigenvalue_method_2(x.Me_matrix,1,x.Se_matrix)
-
 x.eigen_freq_modes(2)
-x.plot_frame(scaler = 1e4)
+x.plot_frame(scaler = 1e3)
 
 # %%part 5 Dynamics Eigenmodes
-#scaler = 1e4
+scaler = 1e3
+sol = x.eigen_freq_modes(0, dynamic = True,t_0 = 0, t_f = 10, Nt = 200, modes = np.array([1]))
+x.animate_frame(xlim = (0,10), ylim = (0,9))
 
-#lim = np.array([1.5, 6.5])
-
-#sol = x.eigen_freq_modes(4, 0, True, 0, 1, 100, np.array([2]))
-
-#x.animate_frame(xlim = lim, ylim = lim)
+x.ani.save('test2.gif', writer='imagemagick', fps= 30)
