@@ -14,9 +14,9 @@
 # +                                            +
 # ++++++++++++++++++++++++++++++++++++++++++++++
 
-exec(open('frame_classes.py').read())
+exec(open('src/frame_classes.py').read())
 try:
-    exec(open('lib.py').read())
+    exec(open('src/lib.py').read())
 except:
     import lib
     
@@ -31,7 +31,7 @@ except:
 
 # name      = 'bridge_gud.txt'
 name      = 'crane.txt'
-directory = '../frames/' + name
+directory = 'frames/' + name
 
 x         = Structure(directory)
 
@@ -46,17 +46,18 @@ x.solve_system()
 x.plot_frame(scaler = 1e-2)
 
 # %%part 3 Dynamics
-scaler = 1e-2
+#scaler = 1e-2
 
-lim = np.array([1.5, 6.5])
+#lim = np.array([1.5, 6.5])
 
-sol, t = x.solve_dynamic(0.01, 0, 60)
-x.animate_frame(xlim = lim, ylim = lim)
+#sol, t = x.solve_dynamic(0.01, 0, 60)
+#x.animate_frame(xlim = lim, ylim = lim)
 
 # %% Part 4.- Eigenmodes
+a,b,_ = eigenvalue_method_2(x.Me_matrix,1,x.Se_matrix)
 
-#x.eigen_freq_modes(4, 0)
-#x.plot_frame(scaler = 1e1)
+x.eigen_freq_modes(2)
+x.plot_frame(scaler = 1e4)
 
 # %%part 5 Dynamics Eigenmodes
 #scaler = 1e4

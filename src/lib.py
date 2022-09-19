@@ -694,6 +694,7 @@ def newmarkMethod(M, S, RHSe, initialConds, h, t0, T, verbose = False):
 
 def eigenvalue_method(Me,Num,Se):
     """
+    OLD FUNCTION DO NOT USE...
     Calculates and sorts the first N eigenvalues and eigenmodes of the 
     generalized eigenvalue problem Me x = lambda Se x
 
@@ -723,9 +724,9 @@ def eigenvalue_method(Me,Num,Se):
     eigfreq = 1/np.sqrt(eigval)
     return eigfreq,eigvec
 
-def eigenvalue_method_2(Me,Num,Se):
+def eigenvalue_method_2(Me,N,Se):
     """
-    Calculates and sorts the first N eigenvalues and eigenmodes of the 
+    Calculates and sorts (from low eigenfreq to high eigenfreq) the first N eigenvalues and eigenmodes of the 
     generalized eigenvalue problem Me x = lambda Se x
 
     Parameters
@@ -734,19 +735,19 @@ def eigenvalue_method_2(Me,Num,Se):
         Matrix in the left hand side of the generalized eigenvalue problem
     Se: {array}
         Matrix in the right hand side of the generalized eigenvalue problem
-    Num: {integer}
-        number of eigenfrequencies and eigenmodes. 
+    N: {integer}
+        number of eigenfrequencies and eigenmodes to be calculated. 
 
     Returns
     -------
     eigfreq: {array}
         Vector of size N with the eigenfrequencies.
     eigvec: {array}
-        matrix of size N by two times the size of the grid + 4 (or +2 need to find this out :( ),  
+        matrix of size N by two times the size of the grid + 2,  
         the column i gives the coefficient/weights for the shape functions of eigenmode i.
     """
 
-    A = inv(Se.toarray())@Me.toarray()
+    A = inv(np.array(Se))@np.array(Me)
     eigval, eigvec = eig(A)
     eigval = eigval.real
     eigvec = eigvec.real
@@ -761,22 +762,28 @@ def eigenvalue_method_2(Me,Num,Se):
     eigval = eigval[idx]
     eigvec = eigvec[:,idx]
     eigfreq = 1/np.sqrt(eigval)
-    return eigfreq[:Num],eigvec[:,:Num],eigval
+    return eigfreq[:N],eigvec[:,:N],eigval
 
 def eigenvalue_method_exact(grid, E, I, mu, L, N, BCtype = "Cantilever"):
     """
-    Calculates the eigenvalues and Nth eigenmode of the cantilever beam problem exactly (simply supported beam will be added later)
+    Calculates the first N eigenvalues and eigenmodes of the cantilever and supported beam problem exactly.
 
     Parameters
     ----------
+    grid: {array}
+        Vector with gridpoints.
     E: {function} or {scalar}
         Young modulus [N/mm2]
     I: {function} or {scalar}
         Area moment of inertia.
     mu: {function} or {scalar}
         Density.
+    L: {scalar}
+        Length of the beam.
     N: {integer}
         number of frequencies calculated and number of first N eigenmodes superpositioned. (maybe introduce two seperate integers for this)
+    BCtype: {string}
+        Specify which beam problem to be solved
 
     Returns
     -------
@@ -825,7 +832,8 @@ def eigenvalue_method_exact(grid, E, I, mu, L, N, BCtype = "Cantilever"):
 def eigenvalue_method_dynamic(t_0,t_f,Nt,w_0,w_diff_0,M,S,modes,Fourier = True):
 
     """
-    Calculates the superposition of the eigenmodes in time
+    If Fourier = True then the eigenvaluemethod (i.e. all modes are taken into accordance) is computed. 
+    else only the modes specified are taken into account and the weights are manually set to 1 for all modes.
 
     Parameters
     ----------
@@ -835,19 +843,17 @@ def eigenvalue_method_dynamic(t_0,t_f,Nt,w_0,w_diff_0,M,S,modes,Fourier = True):
         final time for the simulation
     Nt: {integer}
         Number of timesteps.
-    M: {array} 
-        Matrix at the left hand side of the generalized eigenvalue problem (i.e. mass matrix M).
-    S: {array} 
-        Matrix at right hand side of the generalized eigenvalue problem (i.e. stiffnes matrix S).
+    Me: {array} 
+        Matrix at the left hand side of the generalized eigenvalue problem (i.e. extended mass matrix Me).
+    Se: {array} 
+        Matrix at right hand side of the generalized eigenvalue problem (i.e.extended stiffnes matrix Se).
     Modes: {array}
-        Array that contains the amplitude of the eigenmodes.
-    Num: {integer}
-        Maximum eigenmode number in the superposition.
+        Array that contains the modenumber taken into accordance. Note that if Fourier is true then this argument is absolete.
 
     Returns
     -------
     superposition_t: {array}
-        Matrix of size Nt by two times the size of the grid + 4 (or +2 need to find this out :( ),     
+        Matrix of size Nt by two times the size of the grid + 2,     
         the column i gives the coefficient/weights for the shape functions at time t = i*(t_f-t_0)/Nt.
     
     """
