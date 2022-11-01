@@ -24,6 +24,7 @@ class Structure:
         self.J = 1.0
         self.G = 1.0
         self.mu = 1.0
+        self.Inertia = 1.0 # mass moment of inertia of the beam about it's main(long)axis
         mode = 0
         f = open(filename, "r") # read off nodes and beams from the file and store them in lists 
 
@@ -97,7 +98,7 @@ class Structure:
                         if len(content) > 2:
                             a = np.array([[content[2],content[3],content[4]],[content[5],content[6],content[7]]])
                             print(a)
-                            node.force = a.astype(np.float)
+                            node.force = a.astype(float)
                         #print("node type")
                         #print(node.status)
                         break
@@ -319,11 +320,20 @@ class Structure:
 
     def assemble_matrices(self):
         n_beams = len(self.beams) 
-        S = sp.sparse.lil_matrix((n_beams*12, n_beams*12), dtype= np.float64)
+        S = sp.sparse.lil_matrix((n_beams*12, n_beams*12), dtype= float)
+        M_matrix = sp.sparse.lil_matrix((n_beams*12, n_beams*12), dtype= float)
+        # unit- basis function integrals for S matrix
         A_loc = np.array([[ 12. ,  6. ,-12. ,  6.],
                           [  6. ,  4. , -6. ,  2.],
                           [-12. , -6. , 12. , -6.],
                           [  6. ,  2. , -6. ,  4.]])
+
+        # unit- basis function integrals for M matrix
+        B_loc = np.array([[13/35, 11/210, 9/70, -13/420],
+                          [11/210, 1/105, 13/420, -1/140],
+                          [9/70, 13/420, 13/35, -11/210],
+                          [-13/420, -1/140, -11/210, 1/105]])
+
         mode1 = np.array([ [1,0,1,0],
                             [0,0,0,0],
                             [1,0,1,0],
@@ -348,6 +358,11 @@ class Structure:
             S_v = sp.sparse.lil_matrix([[1.0,-1.0],[-1.0,1.0]])  * self.E * self.A /h
             S_w = sp.sparse.lil_matrix(self.E * self.I * A_loc * h_array)
             S_l = sp.sparse.lil_matrix(self.E * self.I * A_loc * h_array)
+
+            M_torsion = sp.sparse.lil_matrix([[1/3, 1/6], [1/6, 1/3]])  * self.Inertia *h
+            M_v = sp.sparse.lil_matrix([[1/3, 1/6], [1/6, 1/3]])  * self.mu *h
+            M_w = sp.sparse.lil_matrix(self.mu * B_loc * h_array* h**4)
+            M_l = sp.sparse.lil_matrix(self.mu * B_loc * h_array* h**4)
             S_local = sp.sparse.block_diag((S_torsion,S_v,S_w,S_l)) # 12x12 local matrix corresponding to one element
             S[global_index:global_index+12,global_index:global_index+12] = S_local
             #plt.spy(S_local)
@@ -499,7 +514,7 @@ class Beam:
 
 #filename = "test_3d.txt"
 #filename = "final_struct_3d.txt"
-filename = "radar_final.txt"
+filename = "3Dsolver/radar_final.txt"
 #filename = "tower_simple.txt"
 #filename = r'C:\Users\Volodymyr\Documents\Master_courses\project_numerical_analysis\beam-num-analysis\src\frame\test_3d.txt'
 x = Structure(filename)
