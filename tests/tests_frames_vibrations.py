@@ -28,6 +28,6 @@ for i in range(3):
 # %%Dynamics Eigenmodes
 for i in range(3):
     scaler = 1e3
-    sol = x.eigen_freq_modes(0, dynamic = True,t_0 = 0, t_f = 10, Nt = 200, modes = np.array([1]))
+    sol = x.eigen_freq_modes(0, dynamic = True,t_0 = 0, t_f = 10, Nt = 200, modes = np.array([i+1]))
     x.animate_frame(xlim = (0,10), ylim = (0,9))
 #    x.ani.save('test2.gif', writer='imagemagick', fps= 30)
