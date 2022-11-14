@@ -14,9 +14,9 @@
 # +                                            +
 # ++++++++++++++++++++++++++++++++++++++++++++++
 
-exec(open('frame_classes.py').read())
+exec(open('src/frame_classes.py').read())
 try:
-    exec(open('lib.py').read())
+    exec(open('src/lib.py').read())
 except:
     import lib
     
@@ -30,8 +30,8 @@ except:
 # %% Part 2.- Frame simulation
 
 # name      = 'bridge_gud.txt'
-name      = 'crane.txt'
-directory = '../frames/' + name
+name      = 'bridge.txt'
+directory = 'frames/' + name
 
 x         = Structure(directory)
 
@@ -45,24 +45,21 @@ _, _, _   = x.assemble_matrices()
 x.solve_system()
 x.plot_frame(scaler = 1e-2)
 
-# %% Part 3.- Eigenmodes
+# %%part 3 Dynamics
+#scaler = 1e-2
 
-x.eigen_freq_modes(4, 0)
-x.plot_frame(scaler = 1e4)
+#lim = np.array([1.5, 6.5])
 
-# %%part 4 Dynamics Eigenmodes
-scaler = 1e4
+#sol, t = x.solve_dynamic(0.01, 0, 60)
+#x.animate_frame(xlim = lim, ylim = lim)
 
-lim = np.array([1.5, 6.5])
+# %% Part 4.- Eigenmodes
+x.eigen_freq_modes(2)
+x.plot_frame(scaler = 1e3)
 
-sol = x.eigen_freq_modes(4, 0, True, 0, 1, 100, np.array([2]))
+# %%part 5 Dynamics Eigenmodes
+scaler = 1e3
+sol = x.eigen_freq_modes(0, dynamic = True,t_0 = 0, t_f = 10, Nt = 200, modes = np.array([1]))
+x.animate_frame(xlim = (0,10), ylim = (0,9))
 
-x.animate_frame(xlim = lim, ylim = lim)
-
-# %%part 4 Dynamics
-scaler = 1e4
-
-lim = np.array([1.5, 6.5])
-
-sol, t = x.solve_dynamic(0.01, 0, 60)
-x.animate_frame(xlim = lim, ylim = lim)
+x.ani.save('test2.gif', writer='imagemagick', fps= 30)

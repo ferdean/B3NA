@@ -283,7 +283,7 @@ class Structure:
         f.close()
                   
    
-    def plot_frame(self, scaler = 1e6):
+    def plot_frame(self, scaler = 1e6, save = False, name = None):
         
         nB     = len(self.beams)  # Number of beams
         nN     = len(self.nodes)  # Number of nodes
@@ -339,6 +339,9 @@ class Structure:
         
         ax.set_title('(deformation scaler: %.2E)'%scaler, fontsize = 8)
 
+        if save:
+            plt.savefig(name,dpi = 300)
+        
         plt.show()
     
 
@@ -564,18 +567,18 @@ class Structure:
             self.ani = animation.FuncAnimation(self.fig, animation_frame, np.arange(0, 200), interval = 10, blit= False)
             self.root.mainloop()
 
-    def eigen_freq_modes(self, Num, index, dynamic = False, t_0 = None, t_f = None, Nt = None, modes = None):
+    def eigen_freq_modes(self, N, dynamic = False,t_0 = None, t_f = None, Nt = None, w_0 = None, w_diff_0 = None, modes = None):
 
-        if dynamic: 
-            sol = eigenvalue_method_dynamic(t_0,t_f,Nt,self.Me_matrix,self.Se_matrix,modes,Num)
+        if dynamic: #TBD
+            sol = eigenvalue_method_dynamic(t_0,t_f,Nt,w_0,w_diff_0,self.Me_matrix,self.Se_matrix,modes,Fourier =False)
             self.sol_dyn = sol
             return sol
         else: 
-            eigenvalues, eigenmodes = eigenvalue_method(self.Me_matrix,Num,self.Se_matrix)
+            eigenvalues, eigenmodes,_ = eigenvalue_method_2(self.Me_matrix,N,self.Se_matrix)
             self.eigenvalues = eigenvalues
             self.eigenmodes = eigenmodes
-            self.dof = eigenmodes[:,index-1]
-            return eigenvalues, eigenmodes
+            self.dof = eigenmodes[:,N-1]
+            return eigenmodes[:,N-1]
 
 class Node:
     def __init__(self, index, coord, status):

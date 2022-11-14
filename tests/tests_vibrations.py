@@ -83,16 +83,17 @@ for i in range(int(n/2)):
         ax[i, j].plot(x_plot, y_1, color= '#808080', label = 'eigenvector')
         ax[i, j].plot(x_plot, sign*y_2,"--", color= 'red', label = 'eigenfunction')
         ax[i, j].set_title('i = '+str(k))
-        ax[i, j].plot(x_plot, np.zeros(x_plot.shape), color= '#959595', linestyle = '--')
+        #ax[i, j].plot(x_plot, np.zeros(x_plot.shape), color= '#959595', linestyle = '--')
         ax[i, j].axvline(x = 0, color="black", linestyle="-", linewidth = 5)
+        ax[i][j].set_ylim((-1.5,1.5))
         if k == 1:
             ax[0][1].legend(loc = (1.05,0.75))
         k+=1
 
 ax[0][0].set_xticklabels([])
 ax[0][1].set_xticklabels([])
-ax[0][0].set_yticks(np.arange(-1,1,step = 0.5))
-ax[1][0].set_yticks(np.arange(-1,1,step = 0.5))
+ax[0][0].set_yticks(np.arange(-1.5,2,step = 0.5))
+ax[1][0].set_yticks(np.arange(-1.5,2,step = 0.5))
 ax[0][1].set_yticklabels([])
 ax[1][1].set_yticklabels([])
 
@@ -177,17 +178,18 @@ for i in range(int(n/2)):
         ax[i, j].plot(x_plot, y_1, color= '#808080', label = 'eigenvector')
         ax[i, j].plot(x_plot,sign*y_2,"--", color= 'red', label = 'eigenfunction')
         ax[i, j].set_title('i = '+str(k))
-        ax[i, j].plot(x_plot, np.zeros(x_plot.shape), color= '#959595', linestyle = '--')
+        #ax[i, j].plot(x_plot, np.zeros(x_plot.shape), color= '#959595', linestyle = '--')
         ax[i, j].axvline(x = 0, color="black", linestyle="-", linewidth = 5)
         ax[i, j].axvline(x = L, color="black", linestyle="-", linewidth = 5)
+        ax[i][j].set_ylim((-1.5,1.5))
         if k == 1:
             ax[0][1].legend(loc = (1.05,0.75))
         k+=1
 
 ax[0][0].set_xticklabels([])
 ax[0][1].set_xticklabels([])
-ax[0][0].set_yticks(np.arange(-1,1,step = 0.5))
-ax[1][0].set_yticks(np.arange(-1,1,step = 0.5))
+ax[0][0].set_yticks(np.arange(-1.5,2,step = 0.5))
+ax[1][0].set_yticks(np.arange(-1.5,2,step = 0.5))
 ax[0][1].set_yticklabels([])
 ax[1][1].set_yticklabels([])
 
@@ -271,7 +273,7 @@ x_plot = np.linspace(grid.min(), grid.max(), nData)
 
 beam = get_sol(grid, sol[0:-2, 0])
 line, = ax.plot(x_plot, beam(x_plot) * 1e3, color= '#808080', label = 'numerical')
-ax.plot(x_plot, np.zeros(x_plot.shape), color= '#959595', linestyle = '--')
+#ax.plot(x_plot, np.zeros(x_plot.shape), color= '#959595', linestyle = '--')
 ax.axvline(x = 0, color="black", linestyle="-", linewidth = 5)
 
 ax.set_ylabel('deformation (mm)')
@@ -281,6 +283,7 @@ ax.tick_params(direction= 'in', which= 'major', length= 4, bottom= True,
     top=True, right= False, left=True, width = 1)
 
 ax.set_ylim(ylim[0], ylim[1])
+ax.grid(linestyle='-.', linewidth=0.7)
 
 def animate(i):
     beam = get_sol(grid, sol[0:-2, i])
@@ -375,12 +378,13 @@ x_plot = np.linspace(grid.min(), grid.max(), nData)
 beam = get_sol(grid, sol[0:-2, 0])
 line, = ax.plot(x_plot, beam(x_plot) * 1e3, color= '#808080', label = 'numerical')
 
-ax.plot(x_plot, np.zeros(x_plot.shape), color= '#959595', linestyle = '--')
+#ax.plot(x_plot, np.zeros(x_plot.shape), color= '#959595', linestyle = '--')
 ax.axvline(x = 0, color="black", linestyle="-", linewidth = 5)
 ax.axvline(x = L, color="black", linestyle="-", linewidth = 5)
 
 ax.set_ylabel('deformation (mm)')
 ax.set_xlabel('x-dimension (-)')
+ax.grid(linestyle='-.', linewidth=0.7)
 
 ax.tick_params(direction= 'in', which= 'major', length= 4, bottom= True,
     top=True, right= False, left=True, width = 1)
