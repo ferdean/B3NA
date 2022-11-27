@@ -86,9 +86,9 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
 - [x] Vibration of frameworks of beams
     - [x] Implementation of a 2D solver for framework
     - [x] (optional) Implementation of a 3D solver for framekorks
-- [ ] Documentation and cleaning
+- [x] Documentation and cleaning
     - [x] Clean all the project and generate tests
-    - [ ] Oral presentation (10-20 min video)
+    - [x] Oral presentation (10-20 min video)
     - [x] Written report (around 20 pages)
     - [x] Update README.md and repository documentation. 
  
